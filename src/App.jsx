@@ -302,7 +302,9 @@ export default function App() {
           alt=""
           aria-hidden="true"
           
-className="absolute top-[27rem] bottom-auto right-0 w-[90%] max-w-[900px] object-contain object-right opacity-[0.12] mix-blend-multiply sm:top-auto sm:bottom-4 sm:object-right-bottom sm:w-[75%] md:w-[65%] lg:w-[60%]"
+
+className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] object-contain object-right opacity-[0.12] mix-blend-multiply sm:top-auto sm:bottom-4 sm:right-0 sm:w-[75%] sm:object-right-bottom md:w-[65%] lg:w-[60%]"
+
 
         />
       </div>
@@ -580,20 +582,20 @@ className="absolute top-[27rem] bottom-auto right-0 w-[90%] max-w-[900px] object
       </section>
 
       {/* FOOTER */}
-      <footer className="relative z-10 border-t border-[#e5dfce] bg-white/35 px-5 py-6 sm:px-8">
+<footer className="relative z-20 border-t border-[#d6c9ae] bg-[#eee9dc] px-5 py-7 sm:px-8">
 
-        <div className="mx-auto max-w-7xl text-center">
+  <div className="mx-auto max-w-7xl text-center">
 
-          <p className="text-[11px] font-semibold tracking-wide text-[#174b3d]">
-            Designed by Navas Kolathikkal
-          </p>
+    <p className="text-[12px] font-bold tracking-wide text-[#173d32]">
+      Designed by Navas Kolathikkal
+    </p>
 
-          <p className="mt-2 text-[10px] tracking-wide text-gray-500">
-            © 2026 MCC LITERATURE FESTIVAL. All rights reserved.
-          </p>
+    <p className="mt-2 text-[10px] font-medium tracking-wide text-[#665b49]">
+      © 2026 MCC LITERATURE FESTIVAL. All rights reserved.
+    </p>
 
-        </div>
-      </footer>
+  </div>
+</footer>
 
     </main>
   );
