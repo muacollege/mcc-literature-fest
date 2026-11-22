@@ -405,18 +405,18 @@ export default function App() {
           {/* MAIN TITLE */}
           <div className="hero-reveal hero-delay-1">
 
-            <h1 className="text-5xl font-black leading-[1.02] tracking-[-0.055em] text-[#173d32] sm:text-6xl lg:text-[76px]">
-              MCC
-              <br />
+            <h1 className="text-5xl font-black leading-[1.02] tracking-[-0.055em] text-[#173d32]">
+  MCC
+  <br />
 
-              <span className="text-[#174b3d]">
-                LITERATURE
-              </span>
+  <span className="text-[#174b3d]">
+    LITERATURE
+  </span>
 
-              <br />
+  <br />
 
-              FEST<span className="text-[#b58b43]">.</span>
-            </h1>
+  FESTIVAL<span className="text-[#b58b43]">.</span>
+</h1>
 
           </div>
 
@@ -585,7 +585,7 @@ export default function App() {
           </p>
 
           <p className="mt-2 text-[10px] tracking-wide text-gray-500">
-            © 2026 MCC Literature Fest. All rights reserved.
+            © 2026 MCC LITERATURE FESTIVAL. All rights reserved.
           </p>
 
         </div>
