@@ -301,7 +301,9 @@ export default function App() {
           src="/college-building.png"
           alt=""
           aria-hidden="true"
-          className="absolute -bottom-4 right-0 w-[90%] max-w-[900px] object-contain object-right-bottom opacity-[0.12] mix-blend-multiply sm:w-[75%] md:w-[65%] lg:w-[60%]"
+          
+className="absolute top-[27rem] bottom-auto right-0 w-[90%] max-w-[900px] object-contain object-right opacity-[0.12] mix-blend-multiply sm:top-auto sm:bottom-4 sm:object-right-bottom sm:w-[75%] md:w-[65%] lg:w-[60%]"
+
         />
       </div>
 
@@ -355,10 +357,10 @@ export default function App() {
       </header>
 
       {/* MAIN HERO */}
-      <section className="relative z-10 mx-auto grid min-h-[76vh] w-full max-w-7xl grid-cols-1 items-center gap-12 px-5 py-12 sm:px-8 md:grid-cols-[0.95fr_1.05fr] md:gap-10 lg:px-12 lg:py-16">
+      <section className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 items-center gap-12 overflow-x-clip px-5 py-12 sm:px-8 md:min-h-[76vh] md:grid-cols-[0.95fr_1.05fr] md:gap-10 lg:px-12 lg:py-16">
 
         {/* LEFT SIDE */}
-        <div className="w-full max-w-xl">
+        <div className="w-full min-w-0 max-w-xl">
 
           {/* ANNIVERSARY IDENTITY */}
           <div className="hero-reveal mb-9 flex items-center gap-4 sm:gap-5">
@@ -405,7 +407,9 @@ export default function App() {
           {/* MAIN TITLE */}
           <div className="hero-reveal hero-delay-1">
 
-            <h1 className="text-5xl font-black leading-[1.02] tracking-[-0.055em] text-[#173d32]">
+           
+<h1 className="text-[clamp(2.8rem,7vw,6rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#173d32]">
+ 
   MCC
   <br />
 
@@ -461,7 +465,7 @@ export default function App() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="mx-auto w-full max-w-lg">
+        <div className="mx-auto w-full min-w-0 max-w-lg">
 
           {/* REGISTRATION DEADLINE */}
           <div className="mb-6 px-1">
@@ -486,7 +490,7 @@ export default function App() {
           </div>
 
           {/* ACTION CARDS */}
-          <div className="space-y-4">
+          <div className="w-full min-w-0 space-y-4">
 
             {actions.map((action, index) => {
               const isRegistration = action.theme === "register";
@@ -508,7 +512,7 @@ export default function App() {
                       if (isClosed) e.preventDefault();
                     }}
                     onMouseMove={handleCardMouseMove}
-                    className={`card-interactive card-light-follow group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-5 sm:gap-5 sm:p-6 ${
+                    className={`card-interactive card-light-follow group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 sm:gap-5 sm:p-6 ${
                       isClosed
                         ? "registration-closed cursor-not-allowed border-gray-300 bg-gray-200 text-gray-500"
                         : action.theme === "dark"
