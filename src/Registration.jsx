@@ -272,11 +272,11 @@ const resetPassword = async () => {
   const sectionClass = "rounded-2xl border border-[#e6ddcc] bg-white/95 p-4 shadow-[0_8px_24px_rgba(23,61,50,0.045)] sm:rounded-3xl sm:p-6";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f7f5ed] px-4 py-6 text-[#173d32] sm:px-6 sm:py-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f5ed] px-4 py-6 text-[#173d32] sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#b58b43]/[0.08] blur-3xl" />
       <div className="pointer-events-none absolute -right-24 top-[28rem] h-80 w-80 rounded-full bg-[#205747]/[0.07] blur-3xl" />
 
-      <div className="relative mx-auto max-w-5xl">
+      <div className="relative mx-auto w-full max-w-6xl">
         <header className="mb-6 overflow-hidden rounded-3xl border border-[#d9c9a8] bg-gradient-to-br from-[#123d32] via-[#1c5544] to-[#10372e] text-white shadow-[0_18px_45px_rgba(23,61,50,0.16)] sm:mb-8">
           <div className="relative px-5 py-6 sm:px-8 sm:py-8">
             <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-[#e5c98f]/20" />
@@ -586,7 +586,7 @@ const resetPassword = async () => {
                 Select up to two individual events. Quiz may be selected in addition.
               </p>
 
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {EVENTS.map((event, index) => {
                   const selected = profile.events.includes(event);
                   return (
@@ -668,7 +668,7 @@ const resetPassword = async () => {
                   <p className="text-[11px] text-[#8a806e]">Please read and accept all declarations.</p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {DECLARATIONS.map(({ key, text }) => (
                   <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8e0d2] bg-[#fdfcf8] p-3.5 transition hover:border-[#cbb98f] sm:p-4">
                     <input
