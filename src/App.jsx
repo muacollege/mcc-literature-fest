@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import Registration from "./Registration";
 
 const REGISTRATION_DEADLINE = new Date(
   "2026-12-10T23:59:00+05:30"
@@ -8,7 +9,7 @@ const REGISTRATION_DEADLINE = new Date(
 const actions = [
   {
     number: "01",
-    title: "Register Your College",
+    title: "Student Registration",
     subtitle: "Be part of the celebration",
     icon: "↗",
     href: "#register",
@@ -41,6 +42,8 @@ const actions = [
 ];
 
 export default function App() {
+  const [showRegistration, setShowRegistration] = useState(false);
+
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
   );
@@ -70,6 +73,10 @@ export default function App() {
     e.currentTarget.style.setProperty("--glow-x", `${x}px`);
     e.currentTarget.style.setProperty("--glow-y", `${y}px`);
   };
+
+  if (showRegistration) {
+    return <Registration />;
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f8f7ef] text-[#173d32]">
@@ -511,7 +518,14 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
                     href={isClosed ? undefined : action.href}
                     aria-disabled={isClosed}
                     onClick={(e) => {
-                      if (isClosed) e.preventDefault();
+                      if (isClosed) {
+                        e.preventDefault();
+                        return;
+                      }
+                      if (isRegistration) {
+                        e.preventDefault();
+                        setShowRegistration(true);
+                      }
                     }}
                     onMouseMove={handleCardMouseMove}
                     className={`card-interactive card-light-follow group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 sm:gap-5 sm:p-6 ${

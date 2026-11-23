@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAUMF1IB56iUpj3A9I6pabelTaFIsGjP88",
+  apiKey: "AIzaSyAUMF1IB56iUpj3A9I6pabeLTaFIsGjP88",
   authDomain: "mcc-literature-fest.firebaseapp.com",
   projectId: "mcc-literature-fest",
   storageBucket: "mcc-literature-fest.firebasestorage.app",
