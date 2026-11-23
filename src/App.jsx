@@ -46,8 +46,24 @@ const actions = [
 export default function App() {
   const [showRegistration, setShowRegistration] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [activePage, setActivePage] = useState("home");
+  const [activePage, setActivePage] = useState(() => {
+  const page = window.location.hash.replace("#", "");
 
+  return ["brochure", "events", "results"].includes(page)
+    ? page
+    : "home";
+});
+useEffect(() => {
+  if (activePage === "home") {
+    window.history.replaceState(null, "", window.location.pathname);
+  } else {
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}#${activePage}`
+    );
+  }
+}, [activePage]);
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
   );
