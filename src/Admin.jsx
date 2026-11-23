@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
   collection,
@@ -128,7 +129,25 @@ export default function Admin({ onBack }) {
       count: rows.filter((row) => (row.events || []).includes(event)).length,
     }));
   }, [rows]);
+const resetPassword = async () => {
+  setError("");
 
+  if (!email.trim()) {
+    setError("Please enter your admin email address first.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+    setError("Password reset link sent. Please check your inbox and spam folder.");
+  } catch (error) {
+    setError("Could not send reset email. Please check your email address.");
+  } finally {
+    setLoading(false);
+  }
+};
   const login = async (event) => {
     event.preventDefault();
     setError("");
@@ -214,6 +233,14 @@ export default function Admin({ onBack }) {
             >
               {loading ? "Please wait..." : "Login to Dashboard"}
             </button>
+            <button
+  type="button"
+  onClick={resetPassword}
+  disabled={loading}
+  className="w-full text-center text-sm font-semibold text-[#98743c] underline"
+>
+  Forgot Password?
+</button>
           </form>
           <button
             type="button"
