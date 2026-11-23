@@ -12,8 +12,8 @@ const EVENTS = [
   "MCC NATIONAL ELOCUTION (ARABIC)",
   "PAPER PRESENTATION (ARABIC)",
   "VLOG-MAKING (ARABIC)",
-  "QUIZ COMPETITION (GENERAL)",
   "CALLIGRAPHY (ARABIC)",
+  "QUIZ COMPETITION (GENERAL)",
 ];
 const QUIZ = "QUIZ COMPETITION (GENERAL)";
 const INDIVIDUAL_EVENTS = EVENTS.filter((event) => event !== QUIZ);
@@ -324,26 +324,35 @@ export default function Registration() {
               <p className="mb-1 mt-1 text-xs text-[#756b59]">Select up to two individual events. Quiz may be selected in addition.</p>
               <p className="mb-4 text-xs font-semibold text-[#9a7130]">Individual events selected: {individualCount}/2</p>
               <div className="space-y-3">
-                {EVENTS.map((event, index) => <label key={event} className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#e4dccd] p-4 transition hover:bg-[#f8f5ed]">
-                  <input type="checkbox" className="mt-1 h-4 w-4 accent-[#173d32]" checked={profile.events.includes(event)} onChange={() => toggleEvent(event)} />
-                  <span className="text-sm font-semibold text-[#29483c]"><span className="mr-2 text-[#a17b35]">0{index + 1}</span>{event}
-                    {event === QUIZ && <span className="mt-1 block text-xs font-normal text-[#9a7130]">Team event – you may also select up to two individual events</span>}
-                  </span>
-                </label>)}
+                {EVENTS.map((event, index) => <div key={event} className="rounded-lg border border-[#e4dccd] p-4 transition hover:bg-[#f8f5ed]">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input type="checkbox" className="mt-1 h-4 w-4 accent-[#173d32]" checked={profile.events.includes(event)} onChange={() => toggleEvent(event)} />
+                    <span className="text-sm font-semibold text-[#29483c]"><span className="mr-2 text-[#a17b35]">0{index + 1}</span>{event}
+                      {event === QUIZ && <span className="mt-1 block text-xs font-normal text-[#9a7130]">Team event – you may also select up to two individual events</span>}
+                    </span>
+                  </label>
+
+                  {event === "PAPER PRESENTATION (ARABIC)" && paperSelected && <div className="mt-4 border-t border-[#e4dccd] pt-4">
+                    <label className={labelClass}>Paper Presentation Topic</label>
+                    <textarea className={inputClass} rows={3} value={profile.paperTopic} onChange={(e) => updateProfile("paperTopic", e.target.value)} placeholder="Enter your paper topic based on one of the brochure themes" required />
+                  </div>}
+
+                  {event === "VLOG-MAKING (ARABIC)" && vlogSelected && <div className="mt-4 border-t border-[#e4dccd] pt-4">
+                    <label className={labelClass}>Vlog Link</label>
+                    <input className={inputClass} type="url" value={profile.vlogLink} onChange={(e) => updateProfile("vlogLink", e.target.value)} placeholder="https://..." required />
+                  </div>}
+
+                  {event === QUIZ && quizSelected && <div className="mt-4 space-y-4 border-t border-[#e4dccd] pt-4">
+                    <h3 className="font-bold text-[#173d32]">General Quiz – Team Details</h3>
+                    <div><label className={labelClass}>Team Name</label><input className={inputClass} value={profile.teamName} onChange={(e) => updateProfile("teamName", e.target.value)} required /></div>
+                    <h4 className="text-sm font-bold text-[#29483c]">Second Member Details</h4>
+                    <div><label className={labelClass}>Name of the Member</label><input className={inputClass} value={profile.member2Name} onChange={(e) => updateProfile("member2Name", e.target.value)} required /></div>
+                    <div><label className={labelClass}>Mobile Number of the Member</label><input className={inputClass} type="tel" inputMode="numeric" maxLength={10} value={profile.member2Mobile} onChange={(e) => updateProfile("member2Mobile", e.target.value.replace(/\D/g, ""))} required /></div>
+                    <div><label className={labelClass}>Unique ID (if registered for event)</label><input className={inputClass} value={profile.member2UniqueId} onChange={(e) => updateProfile("member2UniqueId", e.target.value)} placeholder="Optional" /></div>
+                  </div>}
+                </div>)}
               </div>
             </div>
-
-            {paperSelected && <div className="rounded-xl border border-[#d9c59e] bg-[#faf7ef] p-5"><label className={labelClass}>Paper Presentation Topic</label><textarea className={inputClass} rows={3} value={profile.paperTopic} onChange={(e) => updateProfile("paperTopic", e.target.value)} placeholder="Enter your paper topic based on one of the brochure themes" required /></div>}
-            {vlogSelected && <div className="rounded-xl border border-[#d9c59e] bg-[#faf7ef] p-5"><label className={labelClass}>Vlog Link</label><input className={inputClass} type="url" value={profile.vlogLink} onChange={(e) => updateProfile("vlogLink", e.target.value)} placeholder="https://..." required /></div>}
-
-            {quizSelected && <div className="space-y-4 rounded-xl border border-[#d9c59e] bg-[#faf7ef] p-5">
-              <h3 className="font-bold text-[#173d32]">General Quiz – Team Details</h3>
-              <div><label className={labelClass}>Team Name</label><input className={inputClass} value={profile.teamName} onChange={(e) => updateProfile("teamName", e.target.value)} required /></div>
-              <h4 className="text-sm font-bold text-[#29483c]">Second Member Details</h4>
-              <div><label className={labelClass}>Name of the Member</label><input className={inputClass} value={profile.member2Name} onChange={(e) => updateProfile("member2Name", e.target.value)} required /></div>
-              <div><label className={labelClass}>Mobile Number of the Member</label><input className={inputClass} type="tel" inputMode="numeric" maxLength={10} value={profile.member2Mobile} onChange={(e) => updateProfile("member2Mobile", e.target.value.replace(/\D/g, ""))} required /></div>
-              <div><label className={labelClass}>Unique ID (if registered for event)</label><input className={inputClass} value={profile.member2UniqueId} onChange={(e) => updateProfile("member2UniqueId", e.target.value)} placeholder="Optional" /></div>
-            </div>}
 
             <div className="border-t border-[#e7dfd0] pt-5">
               <h3 className="mb-3 text-lg font-bold text-[#173d32]">Declaration</h3>
