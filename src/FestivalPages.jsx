@@ -315,6 +315,31 @@ const competitions = [
 ];
 
 export function EventsPage({ onBack }) {
+  const prizeLabels = ["FIRST PRIZE", "SECOND PRIZE", "THIRD PRIZE"];
+  const prizeStyles = [
+    {
+      rank: "01",
+      label: "FIRST",
+      frame: "border-[#c7a45e] bg-gradient-to-br from-[#fff8e7] via-[#f8edcf] to-[#ead6a8]",
+      medal: "bg-[#b58b43] text-white",
+      amount: "text-[#173d32]",
+    },
+    {
+      rank: "02",
+      label: "SECOND",
+      frame: "border-[#d9d9d2] bg-gradient-to-br from-white to-[#eeeee9]",
+      medal: "bg-[#7d8982] text-white",
+      amount: "text-[#173d32]",
+    },
+    {
+      rank: "03",
+      label: "THIRD",
+      frame: "border-[#d9b99a] bg-gradient-to-br from-[#fff8f1] to-[#f0dfce]",
+      medal: "bg-[#a8734b] text-white",
+      amount: "text-[#173d32]",
+    },
+  ];
+
   return (
     <main className={shell}>
       <PageHeader
@@ -322,40 +347,118 @@ export function EventsPage({ onBack }) {
         subtitle="Five national-level competitions. Explore the events and their cash prizes."
         onBack={onBack}
       />
-      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-5 sm:px-8 md:grid-cols-2 lg:grid-cols-2 lg:px-12">
-        {competitions.map((event) => (
-          <article
-            key={event.number}
-            className="overflow-hidden rounded-2xl border border-[#e2d7c2] bg-white shadow-[0_8px_24px_rgba(23,61,50,0.07)]"
-          >
-            <div className="bg-gradient-to-r from-[#205747] to-[#10392f] px-5 py-5 text-white sm:px-6">
-              <p className="text-[10px] font-black tracking-[0.2em] text-[#e5c98f]">
-                COMPETITION {event.number}
+
+      <section className="mx-auto max-w-7xl px-5 pb-2 sm:px-8 lg:px-12">
+        <div className="relative mb-7 overflow-hidden rounded-3xl border border-[#cdb783] bg-gradient-to-r from-[#123c31] via-[#1d5947] to-[#123c31] px-5 py-6 text-white shadow-[0_18px_45px_rgba(18,60,49,0.16)] sm:mb-9 sm:px-8 sm:py-8">
+          <div className="pointer-events-none absolute -right-8 -top-16 h-56 w-56 rounded-full border border-[#d9bd7d]/20" />
+          <div className="pointer-events-none absolute -right-1 top-0 h-40 w-40 rounded-full border border-[#d9bd7d]/20" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black tracking-[0.28em] text-[#e8ce91] sm:text-xs">
+                THE FESTIVAL LINE-UP
               </p>
-              <h2 className="mt-2 text-xl font-black sm:text-2xl">{event.title}</h2>
-              <p className="mt-1 text-sm font-semibold text-white/75">({event.language})</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+                Five competitions. One stage.
+              </h2>
+              <p className="mt-2 max-w-xl text-xs leading-6 text-white/75 sm:text-sm">
+                Discover the competitions and prize awards of MCC Literature Festival 2026.
+              </p>
             </div>
-            <div className="p-5 sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black tracking-wide text-[#98743c]">CASH PRIZES</h3>
-                {event.perTeam && (
-                  <span className="rounded-full bg-[#f5eedc] px-3 py-1 text-[10px] font-bold text-[#806d50]">
-                    PER TEAM
-                  </span>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {["FIRST", "SECOND", "THIRD"].map((place, index) => (
-                  <div key={place} className="rounded-xl border border-[#eee5d4] bg-[#faf8f1] px-2 py-4 text-center">
-                    <p className="text-[9px] font-black tracking-wide text-[#98743c] sm:text-[10px]">{place}</p>
-                    <p className="mt-1 text-base font-black text-[#173d32] sm:text-xl">{event.prizes[index]}</p>
+            <div className="flex w-fit items-center gap-3 rounded-2xl border border-[#e8ce91]/30 bg-white/[0.07] px-4 py-3 backdrop-blur-sm">
+              <span className="text-3xl font-black leading-none text-[#e8ce91]">05</span>
+              <span className="text-[9px] font-bold uppercase leading-4 tracking-[0.18em] text-white/80">
+                Featured<br />Competitions
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2">
+          {competitions.map((event, eventIndex) => (
+            <article
+              key={event.number}
+              className="group relative isolate overflow-hidden rounded-[1.6rem] border border-[#dfd2b8] bg-[#fffefa] shadow-[0_10px_30px_rgba(23,61,50,0.07)] transition-all duration-500 hover:-translate-y-1 hover:border-[#b58b43]/70 hover:shadow-[0_20px_42px_rgba(23,61,50,0.13)]"
+            >
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#205747] via-[#174b3d] to-[#10392f] px-5 py-5 text-white sm:px-6 sm:py-6">
+                <div className="pointer-events-none absolute -right-5 -top-10 select-none text-[8rem] font-black leading-none text-white/[0.045] transition-transform duration-700 group-hover:scale-110">
+                  {event.number}
+                </div>
+                <div className="pointer-events-none absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-[#e5c98f]/70 to-transparent" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-[#e5c98f]/40 bg-[#e5c98f]/10 px-2 text-[10px] font-black tracking-wider text-[#f0d99f]">
+                        {event.number}
+                      </span>
+                      <p className="text-[9px] font-black tracking-[0.22em] text-[#e5c98f] sm:text-[10px]">
+                        COMPETITION
+                      </p>
+                    </div>
+                    <h2 className="mt-3 text-xl font-black leading-tight tracking-tight sm:text-2xl">
+                      {event.title}
+                    </h2>
+                    <p className="mt-1.5 text-xs font-semibold tracking-wide text-white/65 sm:text-sm">
+                      {event.language}
+                    </p>
                   </div>
-                ))}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#e5c98f]/30 bg-white/[0.07] text-lg text-[#e5c98f] shadow-inner sm:h-12 sm:w-12">
+                    {eventIndex === 0 ? "✦" : eventIndex === 1 ? "✎" : eventIndex === 2 ? "▶" : eventIndex === 3 ? "✒" : "♛"}
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+
+              <div className="p-4 sm:p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-black tracking-[0.24em] text-[#98743c]">
+                      AWARDS & RECOGNITION
+                    </p>
+                    <h3 className="mt-1 text-sm font-extrabold tracking-wide text-[#173d32] sm:text-base">
+                      Cash Prizes
+                    </h3>
+                  </div>
+                  {event.perTeam && (
+                    <span className="rounded-full border border-[#d8c28f] bg-[#f8f0dc] px-3 py-1.5 text-[9px] font-black tracking-[0.12em] text-[#80612f]">
+                      PER TEAM
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {event.prizes.map((prize, index) => {
+                    const style = prizeStyles[index];
+                    return (
+                      <div
+                        key={prizeLabels[index]}
+                        className={`relative flex min-w-0 flex-col items-center justify-center rounded-2xl border px-2 py-4 text-center transition-transform duration-300 group-hover:translate-y-[-2px] sm:py-5 ${style.frame}`}
+                      >
+                        <span className={`mb-2 flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-black shadow-sm ${style.medal}`}>
+                          {style.rank}
+                        </span>
+                        <p className="text-[8px] font-black tracking-[0.12em] text-[#806d50] sm:text-[9px]">
+                          {style.label}
+                        </p>
+                        <p className={`mt-1.5 whitespace-nowrap text-sm font-black tracking-tight sm:text-lg ${style.amount}`}>
+                          {prize}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-7 flex items-center justify-center gap-3 pb-2 text-center">
+          <span className="h-px w-10 bg-[#cbb47f]" />
+          <p className="text-[9px] font-black tracking-[0.22em] text-[#98743c]">
+            MCC LITERATURE FESTIVAL 2026
+          </p>
+          <span className="h-px w-10 bg-[#cbb47f]" />
+        </div>
       </section>
+
       <PageFooter />
     </main>
   );
