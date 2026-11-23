@@ -1,0 +1,390 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import {
+  collection,
+  getDocs,
+  orderBy,
+  query,
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
+
+const ADMIN_UID = "DcLnjvKxAWNyOtycZSieSgImK0C3";
+
+const EVENT_OPTIONS = [
+  "MCC NATIONAL ELOCUTION (ARABIC)",
+  "PAPER PRESENTATION (ARABIC)",
+  "VLOG-MAKING (ARABIC)",
+  "CALLIGRAPHY (ARABIC)",
+  "QUIZ COMPETITION (GENERAL)",
+];
+
+const inputClass =
+  "w-full rounded-xl border border-[#d8cfbd] bg-white px-4 py-3 text-sm text-[#173d32] outline-none focus:border-[#b58b43]";
+
+function csvCell(value) {
+  const text = Array.isArray(value) ? value.join("; ") : String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportCsv(rows) {
+  const headers = [
+    "Registration ID", "Name", "Email", "Mobile", "College", "University",
+    "Department", "Course", "Year", "Events", "Paper Topic", "Vlog Link",
+    "Quiz Team", "Second Member", "Second Member Mobile", "Status",
+  ];
+
+  const lines = rows.map((row) => [
+    row.registrationId, row.name, row.email, row.mobile, row.college,
+    row.university, row.department, row.course, row.year, row.events,
+    row.paperTopic, row.vlogLink, row.quizTeam?.teamName,
+    row.quizTeam?.member2Name, row.quizTeam?.member2Mobile, row.status,
+  ].map(csvCell).join(","));
+
+  const csv = "\uFEFF" + [headers.map(csvCell).join(","), ...lines].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `MCC-Literature-Fest-Registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export default function Admin({ onBack }) {
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [email, setEmail] = useState("muacarabic@gmail.com");
+  const [password, setPassword] = useState("");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [eventFilter, setEventFilter] = useState("All Events");
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthReady(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.uid !== ADMIN_UID) {
+      setRows([]);
+      return;
+    }
+
+    let active = true;
+    async function loadRegistrations() {
+      setLoading(true);
+      setError("");
+      try {
+        const registrationsQuery = query(
+          collection(db, "registrations"),
+          orderBy("submittedAt", "desc")
+        );
+        const snapshot = await getDocs(registrationsQuery);
+        if (!active) return;
+        setRows(snapshot.docs.map((item) => ({
+          id: item.id,
+          ...item.data(),
+        })));
+      } catch (err) {
+        if (active) {
+          setError(
+            "Could not load registrations. Check that the Admin Firestore Rules are published and try again."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    loadRegistrations();
+    return () => { active = false; };
+  }, [user]);
+
+  const filteredRows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesSearch = !term || [
+        row.name, row.registrationId, row.college, row.email, row.mobile,
+      ].some((value) => String(value || "").toLowerCase().includes(term));
+      const matchesEvent =
+        eventFilter === "All Events" || (row.events || []).includes(eventFilter);
+      return matchesSearch && matchesEvent;
+    });
+  }, [rows, search, eventFilter]);
+
+  const eventCounts = useMemo(() => {
+    return EVENT_OPTIONS.map((event) => ({
+      event,
+      count: rows.filter((row) => (row.events || []).includes(event)).length,
+    }));
+  }, [rows]);
+
+  const login = async (event) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (result.user.uid !== ADMIN_UID) {
+        await signOut(auth);
+        setError("This account is not authorized as the Admin.");
+      } else {
+        setPassword("");
+      }
+    } catch {
+      setError("Login failed. Please check your email and password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    setRows([]);
+    setSearch("");
+    setEventFilter("All Events");
+  };
+
+  if (!authReady) {
+    return (
+      <main className="min-h-screen bg-[#f4f0e6] p-8 text-center text-[#173d32]">
+        Loading Admin...
+      </main>
+    );
+  }
+
+  if (!user || user.uid !== ADMIN_UID) {
+    return (
+      <main className="min-h-screen bg-[#f4f0e6] px-4 py-12">
+        <section className="mx-auto max-w-md rounded-3xl border border-[#e0d6c3] bg-white p-6 shadow-xl sm:p-9">
+          <div className="text-center">
+            <p className="text-xs font-black tracking-[0.22em] text-[#a17b35]">
+              MCC LITERATURE FESTIVAL 2026
+            </p>
+            <h1 className="mt-3 text-3xl font-black text-[#173d32]">Admin Login</h1>
+            <p className="mt-2 text-sm text-[#756b59]">Authorized administrators only</p>
+          </div>
+
+          {error && (
+            <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
+          <form onSubmit={login} className="mt-7 space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-[#29483c]">
+                Admin Email
+              </label>
+              <input
+                className={inputClass}
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-[#29483c]">
+                Password
+              </label>
+              <input
+                className={inputClass}
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            <button
+              disabled={loading}
+              className="w-full rounded-xl bg-[#173d32] px-5 py-3.5 font-bold text-white transition hover:bg-[#245846] disabled:opacity-50"
+            >
+              {loading ? "Please wait..." : "Login to Dashboard"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-5 w-full rounded-xl border border-[#d8cfbd] px-4 py-3 text-sm font-bold text-[#29483c]"
+          >
+            Back to Festival Website
+          </button>
+          <p className="mt-4 text-center text-xs text-[#8a806e]">
+            Madeenathul Uloom Arabic College, Pulikkal
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f4f0e6] px-4 py-8 text-[#173d32] sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col justify-between gap-4 rounded-3xl bg-gradient-to-br from-[#205747] via-[#174b3d] to-[#10392f] p-6 text-white shadow-lg sm:flex-row sm:items-center sm:p-8">
+          <div>
+            <p className="text-xs font-bold tracking-[0.22em] text-[#e2cc9c]">
+              MCC LITERATURE FESTIVAL 2026
+            </p>
+            <h1 className="mt-2 text-3xl font-black sm:text-4xl">Admin Dashboard</h1>
+            <p className="mt-2 text-sm text-white/75">Signed in as {user.email}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              Website
+            </button>
+            <button
+              onClick={logout}
+              className="rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              Logout
+            </button>
+          </div>
+        </header>
+
+        {error && (
+          <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-2xl border border-[#e0d6c3] bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold text-[#756b59]">Total Registrations</p>
+            <p className="mt-2 text-4xl font-black">{rows.length}</p>
+          </div>
+          {eventCounts.map(({ event, count }) => (
+            <div key={event} className="rounded-2xl border border-[#e0d6c3] bg-white p-5 shadow-sm">
+              <p className="text-xs font-bold leading-relaxed text-[#756b59]">{event}</p>
+              <p className="mt-2 text-3xl font-black">{count}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-[#e0d6c3] bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <input
+              className={`${inputClass} flex-1`}
+              placeholder="Search name, Registration ID, college, email or mobile..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <select
+              className={`${inputClass} lg:max-w-xs`}
+              value={eventFilter}
+              onChange={(event) => setEventFilter(event.target.value)}
+            >
+              <option>All Events</option>
+              {EVENT_OPTIONS.map((event) => <option key={event}>{event}</option>)}
+            </select>
+            <button
+              onClick={() => exportCsv(filteredRows)}
+              disabled={!filteredRows.length}
+              className="rounded-xl bg-[#b58b43] px-5 py-3 text-sm font-bold text-[#173d32] transition hover:bg-[#c6a66b] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#756b59]">
+            <span>Showing {filteredRows.length} of {rows.length} registrations</span>
+            <button
+              onClick={() => { setSearch(""); setEventFilter("All Events"); }}
+              className="font-bold text-[#98743c] underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-2xl border border-[#e0d6c3] bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#e7dfd0] px-5 py-4">
+            <h2 className="text-lg font-black">Student Registrations</h2>
+            {loading && <span className="text-xs font-semibold text-[#98743c]">Loading...</span>}
+          </div>
+
+          {loading && rows.length === 0 ? (
+            <p className="p-8 text-center text-sm text-[#756b59]">Fetching registrations...</p>
+          ) : filteredRows.length === 0 ? (
+            <p className="p-8 text-center text-sm text-[#756b59]">No registrations found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
+                <thead className="bg-[#f4f0e6] text-xs uppercase tracking-wide text-[#756b59]">
+                  <tr>
+                    <th className="px-4 py-3">Registration ID</th>
+                    <th className="px-4 py-3">Student</th>
+                    <th className="px-4 py-3">College / University</th>
+                    <th className="px-4 py-3">Course / Year</th>
+                    <th className="px-4 py-3">Mobile / Email</th>
+                    <th className="px-4 py-3">Events & Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.map((row) => (
+                    <tr key={row.id} className="border-t border-[#eee8dc] align-top hover:bg-[#fcfaf5]">
+                      <td className="whitespace-nowrap px-4 py-4 font-bold text-[#98743c]">
+                        {row.registrationId || "—"}
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-bold">{row.name || "—"}</p>
+                        <p className="mt-1 text-xs text-[#8a806e]">{row.department || ""}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-semibold">{row.college || "—"}</p>
+                        <p className="mt-1 text-xs text-[#8a806e]">{row.university || ""}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p>{row.course || "—"}</p>
+                        <p className="mt-1 text-xs text-[#8a806e]">{row.year || ""}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p>{row.mobile || "—"}</p>
+                        <p className="mt-1 text-xs text-[#8a806e]">{row.email || ""}</p>
+                      </td>
+                      <td className="max-w-sm px-4 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {(row.events || []).map((event) => (
+                            <span key={event} className="rounded-full bg-[#eee9dc] px-2.5 py-1 text-[10px] font-bold text-[#29483c]">
+                              {event}
+                            </span>
+                          ))}
+                        </div>
+                        {row.paperTopic && <p className="mt-2 text-xs"><b>Paper:</b> {row.paperTopic}</p>}
+                        {row.vlogLink && <p className="mt-2 break-all text-xs"><b>Vlog:</b> <a className="text-blue-700 underline" href={row.vlogLink} target="_blank" rel="noreferrer">Open link</a></p>}
+                        {row.quizTeam && <div className="mt-2 text-xs leading-5">
+                          <p><b>Quiz Team:</b> {row.quizTeam.teamName}</p>
+                          <p><b>Member 2:</b> {row.quizTeam.member2Name} · {row.quizTeam.member2Mobile}</p>
+                          {row.quizTeam.member2UniqueId && <p><b>Unique ID:</b> {row.quizTeam.member2UniqueId}</p>}
+                        </div>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <p className="mt-6 text-center text-xs text-[#8a806e]">
+          Admin access is restricted to the authorized Firebase account.
+        </p>
+      </div>
+    </main>
+  );
+}

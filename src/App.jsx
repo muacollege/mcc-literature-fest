@@ -1,9 +1,10 @@
 
 import { useEffect, useState } from "react";
 import Registration from "./Registration";
+import Admin from "./Admin";
 
 const REGISTRATION_DEADLINE = new Date(
-  "2026-12-10T23:59:00+05:30"
+  "2026-11-29T23:59:00+05:30"
 ).getTime();
 
 const actions = [
@@ -43,6 +44,7 @@ const actions = [
 
 export default function App() {
   const [showRegistration, setShowRegistration] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
@@ -73,7 +75,9 @@ export default function App() {
     e.currentTarget.style.setProperty("--glow-x", `${x}px`);
     e.currentTarget.style.setProperty("--glow-y", `${y}px`);
   };
-
+if (showAdmin) {
+  return <Admin onBack={() => setShowAdmin(false)} />;
+}
   if (showRegistration) {
     return <Registration />;
   }
@@ -486,7 +490,7 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
 
             {registrationOpen ? (
               <p className="text-base font-black tracking-wide text-[#174b3d] sm:text-lg">
-                10 DECEMBER 2026
+                29 NOVEMBER 2026
                 <span className="text-[#b58b43]"> | </span>
                 11:59 PM
               </p>
@@ -601,12 +605,19 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
   <div className="mx-auto max-w-7xl text-center">
 
     <p className="text-[12px] font-bold tracking-wide text-[#173d32]">
-      Designed by Navas Kolathikkal
-    </p>
+  Designed by Navas Kolathikkal
+</p>
 
-    <p className="mt-2 text-[10px] font-medium tracking-wide text-[#665b49]">
-      © 2026 MCC LITERATURE FESTIVAL. All rights reserved.
-    </p>
+<button
+  onClick={() => setShowAdmin(true)}
+  className="mt-3 text-xs font-semibold text-[#98743c] underline"
+>
+  Admin Login
+</button>
+
+<p className="mt-2 text-[10px] font-medium tracking-wide text-[#665b49]">
+  © 2026 MCC LITERATURE FESTIVAL. All rights reserved.
+</p>
 
   </div>
 </footer>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
@@ -43,6 +44,7 @@ export default function Registration() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState("signup");
+  const [showPassword, setShowPassword] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [registrationId, setRegistrationId] = useState("");
   const [account, setAccount] = useState({ name: "", mobile: "", email: "", password: "" });
@@ -136,7 +138,29 @@ export default function Registration() {
       setLoading(false);
     }
   };
+const resetPassword = async () => {
+  setMessage("");
 
+  if (!account.email.trim()) {
+    setMessage("Please enter your email address first.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    await sendPasswordResetEmail(auth, account.email.trim());
+    setMessage(
+      "Password reset link sent. Please check your email inbox and spam folder."
+    );
+  } catch (error) {
+    setMessage(
+      "Could not send reset email. Please check your email address."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   const login = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -269,8 +293,39 @@ export default function Registration() {
                 <div><label className={labelClass}>WhatsApp Mobile Number</label><input className={inputClass} type="tel" inputMode="numeric" maxLength={10} value={account.mobile} onChange={(e) => updateAccount("mobile", e.target.value.replace(/\D/g, ""))} required /></div>
               </>}
               <div><label className={labelClass}>Email Address</label><input className={inputClass} type="email" value={account.email} onChange={(e) => updateAccount("email", e.target.value)} required /></div>
-              <div><label className={labelClass}>Password</label><input className={inputClass} type="password" minLength={6} value={account.password} onChange={(e) => updateAccount("password", e.target.value)} required /></div>
+              <div>
+  <label className={labelClass}>Password</label>
+
+  <input
+    className={inputClass}
+    type={showPassword ? "text" : "password"}
+    minLength={6}
+    value={account.password}
+    onChange={(e) => updateAccount("password", e.target.value)}
+    required
+  />
+
+  <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#756b59]">
+    <input
+      type="checkbox"
+      checked={showPassword}
+      onChange={(e) => setShowPassword(e.target.checked)}
+      className="h-4 w-4 accent-[#173d32]"
+    />
+    Show Password
+  </label>
+</div>
               <button disabled={loading} className="w-full rounded-lg bg-[#173d32] px-5 py-3.5 font-bold text-white transition hover:bg-[#245846] disabled:opacity-50">{loading ? "Please wait..." : mode === "signup" ? "Create My Account" : "Login"}</button>
+              {mode === "login" && (
+  <button
+    type="button"
+    onClick={resetPassword}
+    disabled={loading}
+    className="w-full text-center text-sm font-semibold text-[#98743c] underline"
+  >
+    Forgot Password?
+  </button>
+)}
             </form>
           </section>
         ) : registered ? (
