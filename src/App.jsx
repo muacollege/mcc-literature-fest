@@ -44,26 +44,37 @@ const actions = [
 ];
 
 export default function App() {
-  const [showRegistration, setShowRegistration] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [activePage, setActivePage] = useState(() => {
+ 
+const [showAdmin, setShowAdmin] = useState(false);
+
+const [activePage, setActivePage] = useState(() => {
   const page = window.location.hash.replace("#", "");
 
-  return ["brochure", "events", "results"].includes(page)
+  return ["register", "brochure", "events", "results"].includes(page)
     ? page
     : "home";
 });
+
+const navigate = (page) => {
+  window.history.pushState(null, "", `#${page}`);
+  setActivePage(page);
+};
+
 useEffect(() => {
-  if (activePage === "home") {
-    window.history.replaceState(null, "", window.location.pathname);
-  } else {
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}#${activePage}`
+  const handleBack = () => {
+    const page = window.location.hash.replace("#", "");
+
+    setActivePage(
+      ["register", "brochure", "events", "results"].includes(page)
+        ? page
+        : "home"
     );
-  }
-}, [activePage]);
+  };
+
+  window.addEventListener("popstate", handleBack);
+
+  return () => window.removeEventListener("popstate", handleBack);
+}, []);
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
   );
@@ -98,20 +109,20 @@ if (showAdmin) {
 }
 
   if (activePage === "brochure") {
-    return <BrochurePage onBack={() => setActivePage("home")} />;
+    return <BrochurePage onBack={() => navigate("home")} />;
   }
 
   if (activePage === "events") {
-    return <EventsPage onBack={() => setActivePage("home")} />;
+    return <EventsPage onBack={() => navigate("home")} />;
   }
 
   if (activePage === "results") {
-    return <ResultsPage onBack={() => setActivePage("home")} />;
+    return <ResultsPage onBack={() => navigate("home")} />;
   }
 
-  if (showRegistration) {
-    return <Registration />;
-  }
+  if (activePage === "register") {
+  return <Registration />;
+}
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f8f7ef] text-[#173d32]">
@@ -558,18 +569,18 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
                         return;
                       }
                       if (isRegistration) {
-                        e.preventDefault();
-                        setShowRegistration(true);
-                      } else if (action.number === "02") {
-                        e.preventDefault();
-                        setActivePage("brochure");
-                      } else if (action.number === "03") {
-                        e.preventDefault();
-                        setActivePage("events");
-                      } else if (action.number === "04") {
-                        e.preventDefault();
-                        setActivePage("results");
-                      }
+  e.preventDefault();
+  navigate("register");
+} else if (action.number === "02") {
+  e.preventDefault();
+  navigate("brochure");
+} else if (action.number === "03") {
+  e.preventDefault();
+  navigate("events");
+} else if (action.number === "04") {
+  e.preventDefault();
+  navigate("results");
+}
                     }}
                     onMouseMove={handleCardMouseMove}
                     className={`card-interactive card-light-follow group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 sm:gap-5 sm:p-6 ${
