@@ -67,7 +67,7 @@ function PDFReader({ fileUrl }) {
 
   useEffect(() => {
     let cancelled = false;
-    const task = pdfjsLib.getDocument(fileUrl);
+    const task = pdfjsLib.getDocument({ url: fileUrl });
 
     task.promise
       .then((document) => {
