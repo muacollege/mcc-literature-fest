@@ -79,12 +79,14 @@ function PDFReader({ fileUrl }) {
         setNumPages(document.numPages);
         setLoading(false);
       })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Unable to load the brochure. Please try downloading it.");
-          setLoading(false);
-        }
-      });
+      .catch((error) => {
+  console.error("PDF loading error:", error);
+
+  if (!cancelled) {
+    setError(error?.message || "Unknown PDF loading error");
+    setLoading(false);
+  }
+});
 
     return () => {
       cancelled = true;
