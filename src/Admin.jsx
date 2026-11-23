@@ -60,7 +60,7 @@ function exportCsv(rows) {
 export default function Admin({ onBack }) {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
-  const [email, setEmail] = useState("muacarabic@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);

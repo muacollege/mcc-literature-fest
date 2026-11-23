@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Registration from "./Registration";
 import Admin from "./Admin";
+import { BrochurePage, EventsPage, ResultsPage } from "./FestivalPages";
 
 const REGISTRATION_DEADLINE = new Date(
   "2026-11-29T23:59:00+05:30"
@@ -45,6 +46,7 @@ const actions = [
 export default function App() {
   const [showRegistration, setShowRegistration] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [activePage, setActivePage] = useState("home");
 
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
@@ -78,6 +80,19 @@ export default function App() {
 if (showAdmin) {
   return <Admin onBack={() => setShowAdmin(false)} />;
 }
+
+  if (activePage === "brochure") {
+    return <BrochurePage onBack={() => setActivePage("home")} />;
+  }
+
+  if (activePage === "events") {
+    return <EventsPage onBack={() => setActivePage("home")} />;
+  }
+
+  if (activePage === "results") {
+    return <ResultsPage onBack={() => setActivePage("home")} />;
+  }
+
   if (showRegistration) {
     return <Registration />;
   }
@@ -529,6 +544,15 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
                       if (isRegistration) {
                         e.preventDefault();
                         setShowRegistration(true);
+                      } else if (action.number === "02") {
+                        e.preventDefault();
+                        setActivePage("brochure");
+                      } else if (action.number === "03") {
+                        e.preventDefault();
+                        setActivePage("events");
+                      } else if (action.number === "04") {
+                        e.preventDefault();
+                        setActivePage("results");
                       }
                     }}
                     onMouseMove={handleCardMouseMove}
