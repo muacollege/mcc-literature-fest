@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "./firebase";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -464,21 +466,158 @@ export function EventsPage({ onBack }) {
   );
 }
 
+const RESULT_EVENTS = [
+  { id: "elocution", title: "MCC NATIONAL ELOCUTION (ARABIC)", language: "Arabic", icon: "🎙️" },
+  { id: "paper-presentation", title: "PAPER PRESENTATION (ARABIC)", language: "Arabic", icon: "📄" },
+  { id: "vlog-making", title: "VLOG-MAKING (ARABIC)", language: "Arabic", icon: "🎬" },
+  { id: "calligraphy", title: "CALLIGRAPHY (ARABIC)", language: "Arabic", icon: "✒️" },
+  { id: "quiz", title: "QUIZ COMPETITION (GENERAL)", language: "General", icon: "🧠" },
+];
+
+const RESULT_PLACES = [
+  { key: "first", label: "FIRST PRIZE", rank: "01", medal: "bg-[#b58b43]", frame: "border-[#d8c18d] bg-gradient-to-br from-[#fff8e7] to-[#f1e2bd]" },
+  { key: "second", label: "SECOND PRIZE", rank: "02", medal: "bg-[#7d8982]", frame: "border-[#d9ddd8] bg-gradient-to-br from-white to-[#eff1ed]" },
+  { key: "third", label: "THIRD PRIZE", rank: "03", medal: "bg-[#a8734b]", frame: "border-[#dfc5ad] bg-gradient-to-br from-[#fff8f1] to-[#f1e2d5]" },
+];
+
 export function ResultsPage({ onBack }) {
+  const [results, setResults] = useState({});
+  const [loadingResults, setLoadingResults] = useState(true);
+  const [resultsError, setResultsError] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "festivalResults"),
+      (snapshot) => {
+        const nextResults = {};
+        snapshot.forEach((item) => {
+          nextResults[item.id] = item.data();
+        });
+        setResults(nextResults);
+        setLoadingResults(false);
+        setResultsError("");
+      },
+      (error) => {
+        console.error("Results loading error:", error);
+        setResultsError("Results are temporarily unavailable. Please try again later.");
+        setLoadingResults(false);
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  const publishedEvents = RESULT_EVENTS.filter((event) => {
+    const result = results[event.id];
+    return result && result.published !== false && ["first", "second", "third"].some(
+      (place) => result[place]?.name?.trim()
+    );
+  });
+
   return (
     <main className={shell}>
       <PageHeader
         title="Results & Points"
-        subtitle="Competition results and the festival points table will be published here."
+        subtitle="Official competition results of MCC Literature Festival 2026."
         onBack={onBack}
       />
-      <section className="mx-auto max-w-3xl px-5 sm:px-8">
-        <div className="rounded-3xl border border-[#e2d7c2] bg-white px-6 py-12 text-center shadow-sm sm:px-10">
-          <div className="text-5xl">🏆</div>
-          <h2 className="mt-5 text-2xl font-black text-[#173d32]">Results Coming Soon</h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#756b59]">
-            Official event results, points standings and the overall championship table will be displayed here after they are released by the organizing committee.
+
+      <section className="mx-auto max-w-7xl px-5 pb-8 sm:px-8 lg:px-12">
+        <div className="mb-8 overflow-hidden rounded-3xl border border-[#cdb783] bg-gradient-to-r from-[#123c31] via-[#1d5947] to-[#123c31] px-6 py-7 text-white shadow-[0_18px_45px_rgba(18,60,49,0.14)] sm:px-9 sm:py-9">
+          <p className="text-[10px] font-black tracking-[0.28em] text-[#e8ce91] sm:text-xs">
+            OFFICIAL FESTIVAL ANNOUNCEMENTS
           </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Celebrating Excellence</h2>
+              <p className="mt-2 max-w-xl text-xs leading-6 text-white/75 sm:text-sm">
+                Recognizing the outstanding achievements of our participants across the festival competitions.
+              </p>
+            </div>
+            <div className="w-fit rounded-2xl border border-[#e8ce91]/30 bg-white/[0.07] px-4 py-3">
+              <p className="text-2xl font-black text-[#e8ce91]">{publishedEvents.length.toString().padStart(2, "0")} / 05</p>
+              <p className="text-[9px] font-bold tracking-[0.16em] text-white/75">RESULTS PUBLISHED</p>
+            </div>
+          </div>
+        </div>
+
+        {loadingResults && (
+          <div className="rounded-3xl border border-[#e2d7c2] bg-white px-6 py-14 text-center shadow-sm">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[#d9c9a8] border-t-[#173d32]" />
+            <p className="mt-4 text-sm font-semibold text-[#756b59]">Loading official results...</p>
+          </div>
+        )}
+
+        {!loadingResults && resultsError && (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-center text-sm text-red-700">
+            {resultsError}
+          </div>
+        )}
+
+        {!loadingResults && !resultsError && publishedEvents.length === 0 && (
+          <div className="rounded-3xl border border-[#e2d7c2] bg-white px-6 py-12 text-center shadow-sm sm:px-10">
+            <div className="text-5xl">🏆</div>
+            <h2 className="mt-5 text-2xl font-black text-[#173d32]">Results Coming Soon</h2>
+            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#756b59]">
+              The organizing committee has not published the competition results yet. Please visit this page again for official updates.
+            </p>
+          </div>
+        )}
+
+        {!loadingResults && !resultsError && publishedEvents.length > 0 && (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {publishedEvents.map((event) => {
+              const result = results[event.id];
+              return (
+                <article key={event.id} className="overflow-hidden rounded-3xl border border-[#dfd2b8] bg-[#fffefa] shadow-[0_10px_30px_rgba(23,61,50,0.07)]">
+                  <div className="flex items-center gap-4 bg-gradient-to-r from-[#205747] to-[#10392f] px-5 py-5 text-white sm:px-6">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e5c98f]/30 bg-white/[0.08] text-2xl">
+                      {event.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black tracking-[0.2em] text-[#e5c98f]">OFFICIAL RESULTS</p>
+                      <h2 className="mt-1 text-sm font-black leading-snug sm:text-base">{event.title}</h2>
+                      <p className="mt-1 text-[10px] font-semibold text-white/65">{event.language}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3 sm:p-5">
+                    {RESULT_PLACES.map((place) => {
+                      const winner = result[place.key];
+                      return (
+                        <div key={place.key} className={`rounded-2xl border p-4 text-center ${place.frame}`}>
+                          <span className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-black text-white shadow-sm ${place.medal}`}>
+                            {place.rank}
+                          </span>
+                          <p className="mt-2 text-[8px] font-black tracking-[0.13em] text-[#806d50]">
+                            {place.label}
+                          </p>
+                          {winner?.name?.trim() ? (
+                            <>
+                              <p className="mt-2 break-words text-sm font-black leading-snug text-[#173d32]">
+                                {winner.name}
+                              </p>
+                              {winner.college?.trim() && (
+                                <p className="mt-1 break-words text-[10px] font-semibold leading-4 text-[#756b59]">
+                                  {winner.college}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="mt-3 text-xs font-medium text-[#9b907d]">To be announced</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-8 flex items-center justify-center gap-3 text-center">
+          <span className="h-px w-10 bg-[#cbb47f]" />
+          <p className="text-[9px] font-black tracking-[0.22em] text-[#98743c]">MCC LITERATURE FESTIVAL 2026</p>
+          <span className="h-px w-10 bg-[#cbb47f]" />
         </div>
       </section>
       <PageFooter />

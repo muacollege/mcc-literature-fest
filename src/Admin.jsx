@@ -10,6 +10,12 @@ import {
   getDocs,
   orderBy,
   query,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
@@ -25,6 +31,20 @@ const EVENT_OPTIONS = [
 
 const inputClass =
   "w-full rounded-xl border border-[#d8cfbd] bg-white px-4 py-3 text-sm text-[#173d32] outline-none focus:border-[#b58b43]";
+
+const RESULT_EVENTS = [
+  { id: "elocution", title: "MCC NATIONAL ELOCUTION (ARABIC)" },
+  { id: "paper-presentation", title: "PAPER PRESENTATION (ARABIC)" },
+  { id: "vlog-making", title: "VLOG-MAKING (ARABIC)" },
+  { id: "calligraphy", title: "CALLIGRAPHY (ARABIC)" },
+  { id: "quiz", title: "QUIZ COMPETITION (GENERAL)" },
+];
+
+const EMPTY_RESULT = {
+  first: { name: "", college: "" },
+  second: { name: "", college: "" },
+  third: { name: "", college: "" },
+};
 
 function csvCell(value) {
   const text = Array.isArray(value) ? value.join("; ") : String(value ?? "");
@@ -67,6 +87,10 @@ export default function Admin({ onBack }) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState("All Events");
+  const [results, setResults] = useState({});
+  const [resultDrafts, setResultDrafts] = useState({});
+  const [savingResult, setSavingResult] = useState("");
+  const [resultMessage, setResultMessage] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -97,6 +121,25 @@ export default function Admin({ onBack }) {
           id: item.id,
           ...item.data(),
         })));
+
+        const resultSnapshot = await getDocs(collection(db, "festivalResults"));
+        if (!active) return;
+        const savedResults = {};
+        const drafts = {};
+        resultSnapshot.docs.forEach((item) => {
+          const data = item.data();
+          savedResults[item.id] = data;
+          drafts[item.id] = {
+            first: { ...EMPTY_RESULT.first, ...(data.first || {}) },
+            second: { ...EMPTY_RESULT.second, ...(data.second || {}) },
+            third: { ...EMPTY_RESULT.third, ...(data.third || {}) },
+          };
+        });
+        RESULT_EVENTS.forEach(({ id }) => {
+          if (!drafts[id]) drafts[id] = structuredClone(EMPTY_RESULT);
+        });
+        setResults(savedResults);
+        setResultDrafts(drafts);
       } catch (err) {
         if (active) {
           setError(
@@ -129,6 +172,116 @@ export default function Admin({ onBack }) {
       count: rows.filter((row) => (row.events || []).includes(event)).length,
     }));
   }, [rows]);
+const updateResultDraft = (eventId, placeKey, field, value) => {
+  setResultDrafts((current) => ({
+    ...current,
+    [eventId]: {
+      ...(current[eventId] || EMPTY_RESULT),
+      [placeKey]: {
+        ...((current[eventId] || EMPTY_RESULT)[placeKey] || {}),
+        [field]: value,
+      },
+    },
+  }));
+};
+
+const saveEventResult = async (event) => {
+  if (!user || user.uid !== ADMIN_UID) {
+    setResultMessage("You are not authorized to publish results.");
+    return;
+  }
+
+  const draft = resultDrafts[event.id] || EMPTY_RESULT;
+  const cleanPlace = (place) => ({
+    name: String(draft[place]?.name || "").trim(),
+    college: String(draft[place]?.college || "").trim(),
+  });
+
+  const payload = {
+    eventId: event.id,
+    eventTitle: event.title,
+    first: cleanPlace("first"),
+    second: cleanPlace("second"),
+    third: cleanPlace("third"),
+    published: true,
+    updatedAt: serverTimestamp(),
+    updatedBy: user.uid,
+  };
+
+  setSavingResult(event.id);
+  setResultMessage("");
+  try {
+    await setDoc(doc(db, "festivalResults", event.id), payload, { merge: true });
+    setResults((current) => ({
+      ...current,
+      [event.id]: {
+        ...payload,
+        updatedAt: new Date(),
+      },
+    }));
+    setResultMessage(`${event.title}: results saved successfully.`);
+  } catch (error) {
+    console.error("Saving festival results failed:", error);
+    setResultMessage("Could not save results. Please check your Firestore Rules and try again.");
+  } finally {
+    setSavingResult("");
+  }
+};
+
+const unpublishEventResult = async (event) => {
+  if (!user || user.uid !== ADMIN_UID) {
+    setResultMessage("You are not authorized to unpublish results.");
+    return;
+  }
+  if (!results[event.id]) return;
+  setSavingResult(event.id);
+  setResultMessage("");
+  try {
+    await updateDoc(doc(db, "festivalResults", event.id), {
+      published: false,
+      updatedAt: serverTimestamp(),
+      updatedBy: user.uid,
+    });
+    setResults((current) => ({
+      ...current,
+      [event.id]: { ...current[event.id], published: false },
+    }));
+    setResultMessage(`${event.title}: results unpublished. They are no longer visible publicly.`);
+  } catch (error) {
+    console.error("Unpublishing festival results failed:", error);
+    setResultMessage("Could not unpublish results. Please check your Firestore Rules and try again.");
+  } finally {
+    setSavingResult("");
+  }
+};
+
+const deleteEventResult = async (event) => {
+  if (!user || user.uid !== ADMIN_UID) {
+    setResultMessage("You are not authorized to delete results.");
+    return;
+  }
+  if (!results[event.id]) return;
+  const confirmed = window.confirm(`Permanently delete saved results for ${event.title}? This cannot be undone.`);
+  if (!confirmed) return;
+  setSavingResult(event.id);
+  setResultMessage("");
+  try {
+    await deleteDoc(doc(db, "festivalResults", event.id));
+    setResults((current) => {
+      const next = { ...current };
+      delete next[event.id];
+      return next;
+    });
+    setResultDrafts((current) => ({ ...current, [event.id]: structuredClone(EMPTY_RESULT) }));
+    setResultMessage(`${event.title}: saved results permanently deleted.`);
+  } catch (error) {
+    console.error("Deleting festival results failed:", error);
+    setResultMessage("Could not delete results. Please check your Firestore Rules and try again.");
+  } finally {
+    setSavingResult("");
+  }
+};
+
 const resetPassword = async () => {
   setError("");
 
@@ -336,6 +489,102 @@ const resetPassword = async () => {
             >
               Clear filters
             </button>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-[#d9c9a8] bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-5 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-[10px] font-black tracking-[0.2em] text-[#98743c]">FESTIVAL CONTROL</p>
+              <h2 className="mt-1 text-xl font-black text-[#173d32]">Results Management</h2>
+              <p className="mt-1 text-xs leading-5 text-[#756b59]">
+                Enter the First, Second and Third place winners for each competition. Leave a position blank until it is confirmed.
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-[#f5eedc] px-3 py-1.5 text-[10px] font-bold text-[#806d50]">
+              {Object.keys(results).length} / {RESULT_EVENTS.length} competitions saved
+            </span>
+          </div>
+
+          {resultMessage && (
+            <p role="status" className="mb-4 rounded-xl border border-[#e5dcc9] bg-[#faf8f1] p-3 text-xs font-semibold text-[#29483c]">
+              {resultMessage}
+            </p>
+          )}
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {RESULT_EVENTS.map((event) => {
+              const draft = resultDrafts[event.id] || EMPTY_RESULT;
+              const isSaved = Boolean(results[event.id]);
+              return (
+                <article key={event.id} className="overflow-hidden rounded-2xl border border-[#e5dcc9]">
+                  <div className="bg-gradient-to-r from-[#205747] to-[#10392f] px-4 py-3 text-white">
+                    <p className="text-[9px] font-black tracking-[0.18em] text-[#e5c98f]">COMPETITION</p>
+                    <h3 className="mt-1 text-xs font-black leading-5 sm:text-sm">{event.title}</h3>
+                  </div>
+                  <div className="space-y-4 p-4">
+                    {[
+                      { key: "first", label: "First Prize" },
+                      { key: "second", label: "Second Prize" },
+                      { key: "third", label: "Third Prize" },
+                    ].map((place) => (
+                      <div key={place.key} className="rounded-xl bg-[#faf8f1] p-3">
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#98743c]">{place.label}</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            className={inputClass}
+                            placeholder="Winner name"
+                            value={draft[place.key]?.name || ""}
+                            onChange={(e) => updateResultDraft(event.id, place.key, "name", e.target.value)}
+                          />
+                          <input
+                            className={inputClass}
+                            placeholder="College"
+                            value={draft[place.key]?.college || ""}
+                            onChange={(e) => updateResultDraft(event.id, place.key, "college", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className={`text-[10px] font-bold ${isSaved && results[event.id]?.published !== false ? "text-emerald-700" : "text-[#756b59]"}`}>
+                        {isSaved ? (results[event.id]?.published === false ? "Saved · Unpublished" : "Published publicly") : "Not published yet"}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {isSaved && results[event.id]?.published !== false && (
+                          <button
+                            type="button"
+                            onClick={() => unpublishEventResult(event)}
+                            disabled={savingResult === event.id}
+                            className="rounded-xl border border-[#b58b43] px-3 py-2.5 text-xs font-bold text-[#80612f] hover:bg-[#faf4e6] disabled:opacity-50"
+                          >
+                            Unpublish
+                          </button>
+                        )}
+                        {isSaved && (
+                          <button
+                            type="button"
+                            onClick={() => deleteEventResult(event)}
+                            disabled={savingResult === event.id}
+                            className="rounded-xl border border-red-200 px-3 py-2.5 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => saveEventResult(event)}
+                          disabled={savingResult === event.id}
+                          className="rounded-xl bg-[#b58b43] px-4 py-2.5 text-xs font-black text-[#173d32] transition hover:bg-[#c6a66b] disabled:opacity-50"
+                        >
+                          {savingResult === event.id ? "Saving..." : isSaved && results[event.id]?.published === false ? "Update & Publish" : "Save & Publish"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 
