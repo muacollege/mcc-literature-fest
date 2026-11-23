@@ -1,4 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const shell = "min-h-screen bg-[#f8f7ef] text-[#173d32]";
 const gold = "#b58b43";
@@ -51,6 +55,197 @@ function PageFooter() {
   );
 }
 
+function PDFReader({ fileUrl }) {
+  const containerRef = useRef(null);
+  const canvasRefs = useRef([]);
+  const [pdf, setPdf] = useState(null);
+  const [numPages, setNumPages] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const task = pdfjsLib.getDocument(fileUrl);
+
+    task.promise
+      .then((document) => {
+        if (cancelled) {
+          document.destroy();
+          return;
+        }
+        setPdf(document);
+        setNumPages(document.numPages);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("Unable to load the brochure. Please try downloading it.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      task.destroy();
+    };
+  }, [fileUrl]);
+
+  useEffect(() => {
+    if (!pdf || !containerRef.current) return;
+
+    let cancelled = false;
+
+    const renderPages = async () => {
+      const containerWidth = containerRef.current.clientWidth - 16;
+      const dpr = window.devicePixelRatio || 1;
+
+      for (let pageNumber = 1; pageNumber <= numPages; pageNumber++) {
+        if (cancelled) return;
+
+        const page = await pdf.getPage(pageNumber);
+        const originalViewport = page.getViewport({ scale: 1 });
+        const scale = (containerWidth / originalViewport.width) * zoom;
+        const viewport = page.getViewport({ scale });
+        const renderViewport = page.getViewport({ scale: scale * dpr });
+
+        const canvas = canvasRefs.current[pageNumber - 1];
+        if (!canvas) continue;
+
+        const context = canvas.getContext("2d");
+        canvas.width = renderViewport.width;
+        canvas.height = renderViewport.height;
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
+
+        await page.render({
+          canvasContext: context,
+          viewport: renderViewport,
+        }).promise;
+      }
+    };
+
+    renderPages().catch((err) => {
+      if (!cancelled) console.error("PDF rendering error:", err);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pdf, numPages, zoom]);
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+
+    const pages = containerRef.current.querySelectorAll(".pdf-page");
+    let closestPage = 1;
+    let closestDistance = Infinity;
+
+    pages.forEach((page, index) => {
+      const distance = Math.abs(page.getBoundingClientRect().top - 160);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestPage = index + 1;
+      }
+    });
+
+    setCurrentPage(closestPage);
+  };
+
+  const goToPage = (pageNumber) => {
+    const page = containerRef.current?.querySelector(
+      `[data-page="${pageNumber}"]`
+    );
+    page?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-[#d9c9a8] bg-[#202020] shadow-lg">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="h-[75vh] min-h-[560px] overflow-auto px-2 py-4"
+      >
+        {loading && (
+          <p className="py-12 text-center text-sm text-white">
+            Loading brochure...
+          </p>
+        )}
+
+        {error && (
+          <p className="py-12 text-center text-sm text-red-300">{error}</p>
+        )}
+
+        {Array.from({ length: numPages }, (_, index) => (
+          <div
+            key={index}
+            data-page={index + 1}
+            className="pdf-page mb-4 flex justify-center"
+          >
+            <canvas
+              ref={(element) => {
+                canvasRefs.current[index] = element;
+              }}
+              className="max-w-none bg-white shadow-md"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-white/10 bg-[#064334] px-3 py-3 text-white">
+        <button
+          onClick={() => goToPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+          className="rounded-lg bg-white/10 px-3 py-2 disabled:opacity-30"
+        >
+          ←
+        </button>
+
+        <div className="flex items-center gap-2 text-sm font-bold">
+          <span>Page</span>
+          <input
+            type="number"
+            min="1"
+            max={numPages}
+            value={currentPage}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              if (value >= 1 && value <= numPages) goToPage(value);
+            }}
+            className="w-12 rounded bg-white px-1 py-1 text-center text-[#173d32]"
+          />
+          <span>/ {numPages || "—"}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setZoom((value) => Math.max(0.7, value - 0.15))}
+            className="rounded-lg bg-white/10 px-3 py-2"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <button
+            onClick={() => setZoom((value) => Math.min(2, value + 0.15))}
+            className="rounded-lg bg-white/10 px-3 py-2"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            onClick={() => goToPage(numPages)}
+            className="rounded-lg bg-white/10 px-3 py-2"
+            aria-label="Last page"
+          >
+            →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BrochurePage({ onBack }) {
   return (
     <main className={shell}>
@@ -73,16 +268,10 @@ export function BrochurePage({ onBack }) {
             ↓ Download Brochure
           </a>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-[#d9c9a8] bg-white shadow-lg">
-          <iframe
-            title="MCC Literature Festival 2026 Brochure"
-            src="/mcc-literature-festival-brochure-2026.pdf#toolbar=1&navpanes=0"
-            className="h-[75vh] min-h-[560px] w-full"
-          />
-        </div>
-        <p className="mt-3 text-center text-xs text-[#756b59]">
-          If the preview does not appear on your device, use the Download Brochure button.
-        </p>
+        <PDFReader
+  fileUrl="/mcc-literature-festival-brochure-2026.pdf"
+/>
+        
       </section>
       <PageFooter />
     </main>
