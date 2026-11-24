@@ -103,15 +103,34 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Mouse-following golden light
+  // Shared pointer position for desktop mouse and mobile touch effects
+  const setCardGlowPosition = (element, clientX, clientY) => {
+    const rect = element.getBoundingClientRect();
+    element.style.setProperty("--glow-x", `${clientX - rect.left}px`);
+    element.style.setProperty("--glow-y", `${clientY - rect.top}px`);
+  };
+
   const handleCardMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    setCardGlowPosition(e.currentTarget, e.clientX, e.clientY);
+  };
 
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handleCardTouchStart = (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
 
-    e.currentTarget.style.setProperty("--glow-x", `${x}px`);
-    e.currentTarget.style.setProperty("--glow-y", `${y}px`);
+    setCardGlowPosition(e.currentTarget, touch.clientX, touch.clientY);
+    e.currentTarget.classList.add("touch-active");
+  };
+
+  const handleCardTouchMove = (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    setCardGlowPosition(e.currentTarget, touch.clientX, touch.clientY);
+  };
+
+  const handleCardTouchEnd = (e) => {
+    e.currentTarget.classList.remove("touch-active");
   };
 if (activePage === "admin") {
   return <Admin onBack={() => navigate("home")} />;
@@ -306,6 +325,27 @@ if (activePage === "admin") {
 
           .card-interactive:not(.registration-closed):hover .card-arrow {
             transform: translateX(5px);
+          }
+        }
+
+        /* MOBILE TOUCH INTERACTIONS */
+        @media (hover: none) and (pointer: coarse) {
+          .card-light-follow.touch-active::after {
+            opacity: 1;
+          }
+
+          .card-interactive:not(.registration-closed).touch-active {
+            transform: translateY(-3px) scale(1.003);
+            border-color: rgba(201, 164, 91, 0.85);
+            box-shadow:
+              0 0 0 1px rgba(181, 139, 67, 0.16),
+              0 0 16px rgba(181, 139, 67, 0.14),
+              0 16px 28px rgba(23, 61, 50, 0.12),
+              0 5px 10px rgba(23, 61, 50, 0.05);
+          }
+
+          .card-interactive:not(.registration-closed).touch-active .card-icon {
+            transform: translateY(-2px) scale(1.04);
           }
         }
 
@@ -630,6 +670,10 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
 }
                     }}
                     onMouseMove={handleCardMouseMove}
+                    onTouchStart={handleCardTouchStart}
+                    onTouchMove={handleCardTouchMove}
+                    onTouchEnd={handleCardTouchEnd}
+                    onTouchCancel={handleCardTouchEnd}
                     className={`card-interactive card-light-follow group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 sm:gap-5 sm:p-6 ${
                       isClosed
                         ? "registration-closed cursor-not-allowed border-gray-300 bg-gray-200 text-gray-500"
