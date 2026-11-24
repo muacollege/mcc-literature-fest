@@ -8,6 +8,9 @@ const REGISTRATION_DEADLINE = new Date(
   "2026-11-29T23:59:00+05:30"
 ).getTime();
 
+// Festival begins at 12:00 AM IST on December 8, 2026.
+const FESTIVAL_START = new Date("2026-12-08T00:00:00+05:30").getTime();
+
 const actions = [
   {
     number: "01",
@@ -72,6 +75,18 @@ export default function App() {
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
   );
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCountdownNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const countdownDistance = Math.max(0, FESTIVAL_START - countdownNow);
+  const countdownDays = Math.floor(countdownDistance / (1000 * 60 * 60 * 24));
+  const countdownHours = Math.floor((countdownDistance / (1000 * 60 * 60)) % 24);
+  const countdownMinutes = Math.floor((countdownDistance / (1000 * 60)) % 60);
+  const countdownSeconds = Math.floor((countdownDistance / 1000) % 60);
 
   useEffect(() => {
     const remaining = REGISTRATION_DEADLINE - Date.now();
@@ -515,6 +530,44 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
 
         {/* RIGHT SIDE */}
         <div className="mx-auto w-full min-w-0 max-w-lg">
+
+          {/* FESTIVAL COUNTDOWN */}
+          <div className="mb-7 rounded-2xl border border-[#d9c9a8] bg-white/75 p-4 shadow-[0_10px_28px_rgba(23,61,50,0.07)] backdrop-blur-sm sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#98743c] sm:text-xs">
+                FESTIVAL BEGINS IN
+              </p>
+              <span className="rounded-full border border-[#d9c9a8] bg-[#f8f4e9] px-2.5 py-1 text-[9px] font-bold tracking-wide text-[#765b32]">
+                08 DECEMBER 2026
+              </span>
+            </div>
+            {countdownDistance > 0 ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: countdownDays, label: "DAYS" },
+                  { value: countdownHours, label: "HOURS" },
+                  { value: countdownMinutes, label: "MINUTES" },
+                  { value: countdownSeconds, label: "SECONDS" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-[#e8dfce] bg-[#fbfaf5] px-1 py-3 text-center">
+                    <p className="text-2xl font-black tabular-nums leading-none text-[#174b3d] sm:text-3xl">
+                      {String(item.value).padStart(2, "0")}
+                    </p>
+                    <p className="mt-2 text-[8px] font-extrabold tracking-[0.12em] text-[#98743c] sm:text-[9px]">
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="py-3 text-center text-lg font-black tracking-wide text-[#174b3d]">
+                THE FESTIVAL HAS BEGUN!
+              </p>
+            )}
+            <p className="mt-3 text-center text-[9px] font-medium tracking-wide text-[#806d50] sm:text-[10px]">
+              MCC NAGAR, PULIKKAL · DECEMBER 8–11, 2026
+            </p>
+          </div>
 
           {/* REGISTRATION DEADLINE */}
           <div className="mb-6 px-1">
