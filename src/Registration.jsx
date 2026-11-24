@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 const EVENTS = [
@@ -203,16 +203,17 @@ const resetPassword = async () => {
       setMessage("You can select a maximum of two individual events.");
       return;
     }
-    if (paperSelected && !profile.paperTopic.trim()) {
-      setMessage("Please enter your Paper Presentation topic.");
+    // Paper topic and Vlog link are optional during initial registration.
+    if (paperSelected && profile.paperTopic.trim() && profile.paperTopic.trim().length < 3) {
+      setMessage("Please enter a valid Paper Presentation topic, or leave it blank and add it later.");
       return;
     }
-    if (vlogSelected) {
+    if (vlogSelected && profile.vlogLink.trim()) {
       try {
         const url = new URL(profile.vlogLink.trim());
         if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid URL");
       } catch {
-        setMessage("Please enter a valid Vlog URL beginning with https://");
+        setMessage("Please enter a valid Vlog URL beginning with https://, or leave it blank and add it later.");
         return;
       }
     }
@@ -261,6 +262,54 @@ const resetPassword = async () => {
     }
   };
 
+  const saveEventDetails = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    if (!user || !registered) return;
+
+    const updates = {};
+    if (paperSelected) {
+      const topic = (profile.paperTopic || "").trim();
+      if (topic && topic.length < 3) {
+        setMessage("Please enter a valid Paper Presentation topic.");
+        return;
+      }
+      updates.paperTopic = topic;
+    }
+    if (vlogSelected) {
+      const link = (profile.vlogLink || "").trim();
+      if (link) {
+        try {
+          const url = new URL(link);
+          if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid URL");
+        } catch {
+          setMessage("Please enter a valid Vlog URL beginning with https://.");
+          return;
+        }
+      }
+      updates.vlogLink = link;
+    }
+
+    if (!Object.keys(updates).length) {
+      setMessage("You have not selected Paper Presentation or Vlog-Making in your registration.");
+      return;
+    }
+    if (Object.values(updates).every((value) => !String(value || "").trim())) {
+      setMessage("Please enter at least one event detail before saving.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, "registrations", user.uid), updates);
+      setMessage("Your event details have been saved successfully.");
+    } catch (error) {
+      setMessage("Could not save event details. " + (error?.message || "Please try again."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     await signOut(auth);
     setMessage("You have been logged out.");
@@ -272,28 +321,54 @@ const resetPassword = async () => {
   const sectionClass = "rounded-2xl border border-[#e6ddcc] bg-white/95 p-4 shadow-[0_8px_24px_rgba(23,61,50,0.045)] sm:rounded-3xl sm:p-6";
 
   return (
-    <>
-    <style>{`
-        @keyframes collegeLogoFloat {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          25% { transform: translateY(-4px) rotate(-2deg); }
-          50% { transform: translateY(-7px) rotate(0deg); }
-          75% { transform: translateY(-3px) rotate(2deg); }
-        }
-        .college-logo-float {
-          animation: collegeLogoFloat 4s ease-in-out infinite;
-          transform-origin: center;
-          will-change: transform;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .college-logo-float { animation: none; }
-        }
-      `}</style>
-      <main className="relative min-h-screen overflow-hidden bg-[#f7f5ed] px-4 py-6 text-[#173d32] sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f5ed] px-4 py-6 text-[#173d32] sm:px-6 sm:py-10">
       <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#b58b43]/[0.08] blur-3xl" />
       <div className="pointer-events-none absolute -right-24 top-[28rem] h-80 w-80 rounded-full bg-[#205747]/[0.07] blur-3xl" />
 
-      <div className="relative mx-auto w-full max-w-6xl">
+      <div className="relative mx-auto max-w-5xl">
+        <header className="mb-6 overflow-hidden rounded-3xl border border-[#d9c9a8] bg-gradient-to-br from-[#123d32] via-[#1c5544] to-[#10372e] text-white shadow-[0_18px_45px_rgba(23,61,50,0.16)] sm:mb-8">
+          <div className="relative px-5 py-6 sm:px-8 sm:py-8">
+            <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-[#e5c98f]/20" />
+            <div className="pointer-events-none absolute right-8 top-5 h-40 w-40 rounded-full border border-[#e5c98f]/15" />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white p-2 shadow-lg sm:h-[4.5rem] sm:w-[4.5rem]">
+                  <img src="/college-logo.png" alt="Madeenathul Uloom Arabic College logo" className="h-full w-full object-contain" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#e5c98f] sm:text-[10px]">
+                    Madeenathul Uloom Arabic College, Pulikkal
+                  </p>
+                  <p className="mt-1 text-[10px] font-medium text-white/70 sm:text-xs">
+                    Accredited by NAAC with A+ (CGPA 3.36)
+                  </p>
+                </div>
+              </div>
+              <div className="hidden h-12 w-px bg-white/15 sm:block" />
+              <div className="sm:ml-auto sm:text-right">
+                <p className="text-[9px] font-black tracking-[0.25em] text-[#e5c98f] sm:text-[10px]">
+                  MCC LITERATURE FESTIVAL 2026
+                </p>
+                <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+                  Student Registration
+                </h1>
+                <p className="mt-1 text-xs text-white/70 sm:text-sm">
+                  Be part of the celebration
+                </p>
+              </div>
+            </div>
+            <div className="relative mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/15 pt-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#e5c98f]/30 bg-white/[0.07] px-3 py-1.5 text-[10px] font-semibold text-[#f3dfb3] sm:text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e5c98f]" />
+                Registration closes: 29 November 2026, 11:59 PM
+              </span>
+              <span className="text-[9px] font-semibold tracking-[0.16em] text-white/50">
+                OFFICIAL STUDENT PORTAL
+              </span>
+            </div>
+          </div>
+        </header>
+
         {message && (
           <div
             role="status"
@@ -307,31 +382,22 @@ const resetPassword = async () => {
         )}
 
         {!user ? (
-          <section className="mx-auto grid w-full max-w-4xl overflow-hidden rounded-3xl border border-[#e2d7c2] bg-white shadow-[0_18px_45px_rgba(23,61,50,0.08)] lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="border-b border-[#eee6d7] bg-gradient-to-br from-[#123d32] via-[#1c5544] to-[#0d3028] px-4 py-4 text-white sm:px-6 sm:py-5 lg:relative lg:flex lg:min-h-[620px] lg:flex-col lg:items-center lg:justify-center lg:overflow-hidden lg:border-b-0 lg:px-10 lg:py-12 lg:text-center">
-              <div className="flex items-center gap-3 sm:gap-4 lg:mb-8 lg:flex-col">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white p-2 shadow-lg sm:h-14 sm:w-14 lg:h-24 lg:w-24 lg:p-3">
-                  <img src="/college-logo.png" alt="Madeenathul Uloom Arabic College logo" className="college-logo-float h-full w-full object-contain" />
-                </div>
-                <div className="min-w-0 lg:text-center">
-                  <p className="text-[8px] font-black tracking-[0.13em] text-[#e5c98f] sm:text-[9px] sm:tracking-[0.18em] lg:text-[9px] lg:tracking-[0.2em]">
-                    MADEENATHUL ULOOM ARABIC COLLEGE
-                  </p>
-                  <h2 className="mt-1 text-base font-black leading-tight text-[#f4dfa7] sm:text-lg lg:mt-3 lg:text-3xl">
-                    MCC Literature Festival 2026
-                  </h2>
-                  <p className="mt-1 text-[10px] font-medium text-white/75 sm:text-xs lg:mt-3 lg:text-sm">
-                    Student Registration Portal
-                  </p>
-                </div>
-              </div>
-              <div className="hidden h-1 w-12 rounded-full bg-[#e5c98f] lg:block" />
-              <p className="mt-3 hidden text-xs text-white/70 lg:mt-6 lg:block lg:max-w-xs lg:text-sm lg:leading-7">
-                Be part of the celebration.
+          <section className="mx-auto max-w-xl overflow-hidden rounded-3xl border border-[#e2d7c2] bg-white shadow-[0_18px_45px_rgba(23,61,50,0.08)]">
+            <div className="border-b border-[#eee6d7] bg-gradient-to-r from-[#fbf8ef] to-[#f3eddf] px-5 py-5 sm:px-7">
+              <p className="text-[9px] font-black tracking-[0.24em] text-[#98743c]">
+                STUDENT ACCESS
+              </p>
+              <h2 className="mt-1 text-xl font-black text-[#173d32] sm:text-2xl">
+                {mode === "signup" ? "Create your account" : "Welcome back"}
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-[#756b59] sm:text-sm">
+                {mode === "signup"
+                  ? "Start your festival registration with a student account."
+                  : "Login to continue or manage your registration."}
               </p>
             </div>
 
-            <div className="p-5 sm:p-7 lg:flex lg:min-h-[620px] lg:flex-col lg:justify-center lg:px-12 lg:py-12">
+            <div className="p-5 sm:p-7">
               <div className="mb-6 grid grid-cols-2 rounded-xl bg-[#f2eee4] p-1">
                 <button
                   type="button"
@@ -445,37 +511,51 @@ const resetPassword = async () => {
             </div>
           </section>
         ) : registered ? (
-          <section className="mx-auto max-w-xl overflow-hidden rounded-3xl border border-[#d8c69d] bg-white text-center shadow-[0_18px_45px_rgba(23,61,50,0.08)]">
-            <div className="bg-gradient-to-br from-[#123d32] to-[#205747] px-6 py-8 text-white sm:py-10">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white/10 text-3xl text-[#e5c98f]">
-                ✓
+          <div className="mx-auto max-w-2xl space-y-5">
+            <section className="overflow-hidden rounded-3xl border border-[#d8c69d] bg-white text-center shadow-[0_18px_45px_rgba(23,61,50,0.08)]">
+              <div className="bg-gradient-to-br from-[#123d32] to-[#205747] px-6 py-8 text-white sm:py-10">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white/10 text-3xl text-[#e5c98f]">✓</div>
+                <p className="mt-4 text-[9px] font-black tracking-[0.25em] text-[#e5c98f]">MCC LITERATURE FESTIVAL 2026</p>
+                <h2 className="mt-2 text-2xl font-black sm:text-3xl">Registration Submitted!</h2>
+                <p className="mt-2 text-sm text-white/75">Your registration details have been saved successfully.</p>
               </div>
-              <p className="mt-4 text-[9px] font-black tracking-[0.25em] text-[#e5c98f]">
-                MCC LITERATURE FESTIVAL 2026
-              </p>
-              <h2 className="mt-2 text-2xl font-black sm:text-3xl">Registration Submitted!</h2>
-              <p className="mt-2 text-sm text-white/75">
-                Your registration details have been saved successfully.
-              </p>
+              <div className="p-6 sm:p-8">
+                <p className="text-[9px] font-black tracking-[0.2em] text-[#98743c]">YOUR REGISTRATION ID</p>
+                <p className="mt-2 break-all rounded-2xl border border-[#e8ddc7] bg-[#faf7ef] px-4 py-5 text-xl font-black tracking-wider text-[#173d32] sm:text-2xl">{registrationId}</p>
+                <p className="mt-3 text-xs leading-5 text-[#756b59]">You can add or update the Paper Presentation topic and Vlog link for events you selected.</p>
+              </div>
+            </section>
+
+            {(paperSelected || vlogSelected) ? (
+              <form onSubmit={saveEventDetails} className="space-y-5 rounded-3xl border border-[#e6ddcc] bg-white p-5 shadow-sm sm:p-7">
+                <div>
+                  <p className="text-[9px] font-black tracking-[0.22em] text-[#98743c]">EVENT DETAILS</p>
+                  <h3 className="mt-1 text-xl font-black text-[#173d32]">Complete Your Submission Details</h3>
+                  <p className="mt-2 text-xs leading-5 text-[#756b59]">Only details for events selected in your original registration can be added here. Your other registration details and event selections cannot be changed.</p>
+                </div>
+                {paperSelected && (
+                  <div>
+                    <label className={labelClass}>Paper Presentation Topic</label>
+                    <textarea className={inputClass} rows={3} value={profile.paperTopic || ""} onChange={(e) => updateProfile("paperTopic", e.target.value)} placeholder="Enter your paper presentation topic" />
+                  </div>
+                )}
+                {vlogSelected && (
+                  <div>
+                    <label className={labelClass}>Vlog Link</label>
+                    <input className={inputClass} type="url" value={profile.vlogLink || ""} onChange={(e) => updateProfile("vlogLink", e.target.value)} placeholder="https://..." />
+                  </div>
+                )}
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-[#173d32] to-[#245846] px-5 py-4 text-sm font-black text-white shadow-md disabled:opacity-50">
+                  {loading ? "Saving..." : "Save Event Details"}
+                </button>
+              </form>
+            ) : (
+              <section className="rounded-2xl border border-[#e6ddcc] bg-white p-5 text-center text-sm text-[#756b59]">No additional Paper Presentation or Vlog-Making details are required for your selected events.</section>
+            )}
+            <div className="text-center">
+              <button onClick={logout} className="rounded-xl border border-[#b58b43] px-7 py-3 text-sm font-bold text-[#173d32] transition hover:bg-[#173d32] hover:text-white">Logout</button>
             </div>
-            <div className="p-6 sm:p-8">
-              <p className="text-[9px] font-black tracking-[0.2em] text-[#98743c]">
-                YOUR REGISTRATION ID
-              </p>
-              <p className="mt-2 break-all rounded-2xl border border-[#e8ddc7] bg-[#faf7ef] px-4 py-5 text-xl font-black tracking-wider text-[#173d32] sm:text-2xl">
-                {registrationId}
-              </p>
-              <p className="mt-4 text-xs leading-5 text-[#756b59]">
-                Please save your Registration ID for future reference.
-              </p>
-              <button
-                onClick={logout}
-                className="mt-6 rounded-xl border border-[#b58b43] px-7 py-3 text-sm font-bold text-[#173d32] transition hover:bg-[#173d32] hover:text-white"
-              >
-                Logout
-              </button>
-            </div>
-          </section>
+          </div>
         ) : (
           <form onSubmit={submitRegistration} className="space-y-5 sm:space-y-6">
             <section className="rounded-2xl border border-[#d9c9a8] bg-white px-4 py-4 shadow-sm sm:rounded-3xl sm:px-6">
@@ -569,7 +649,7 @@ const resetPassword = async () => {
                 Select up to two individual events. Quiz may be selected in addition.
               </p>
 
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <div className="space-y-3">
                 {EVENTS.map((event, index) => {
                   const selected = profile.events.includes(event);
                   return (
@@ -605,14 +685,14 @@ const resetPassword = async () => {
                       {event === "PAPER PRESENTATION (ARABIC)" && paperSelected && (
                         <div className="mt-4 border-t border-[#e8ddc7] pt-4">
                           <label className={labelClass}>Paper Presentation Topic</label>
-                          <textarea className={inputClass} rows={3} value={profile.paperTopic} onChange={(e) => updateProfile("paperTopic", e.target.value)} placeholder="Enter your paper topic based on one of the brochure themes" required />
+                          <textarea className={inputClass} rows={3} value={profile.paperTopic} onChange={(e) => updateProfile("paperTopic", e.target.value)} placeholder="You may leave this blank and add it later after login" />
                         </div>
                       )}
 
                       {event === "VLOG-MAKING (ARABIC)" && vlogSelected && (
                         <div className="mt-4 border-t border-[#e8ddc7] pt-4">
                           <label className={labelClass}>Vlog Link</label>
-                          <input className={inputClass} type="url" value={profile.vlogLink} onChange={(e) => updateProfile("vlogLink", e.target.value)} placeholder="https://..." required />
+                          <input className={inputClass} type="url" value={profile.vlogLink} onChange={(e) => updateProfile("vlogLink", e.target.value)} placeholder="You may leave this blank and add it later after login" />
                         </div>
                       )}
 
@@ -651,7 +731,7 @@ const resetPassword = async () => {
                   <p className="text-[11px] text-[#8a806e]">Please read and accept all declarations.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <div className="space-y-3">
                 {DECLARATIONS.map(({ key, text }) => (
                   <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8e0d2] bg-[#fdfcf8] p-3.5 transition hover:border-[#cbb98f] sm:p-4">
                     <input
@@ -675,7 +755,7 @@ const resetPassword = async () => {
                 {loading ? "Submitting..." : "Submit Registration"}
               </button>
               <p className="mt-3 text-center text-[10px] leading-5 text-[#756b59] sm:text-xs">
-                Please verify your details before submitting. All required fields must be completed.
+                Paper Presentation topic and Vlog link are optional now. If selected, you can add them later by logging in. Other required fields must be completed.
               </p>
             </div>
           </form>
@@ -687,6 +767,5 @@ const resetPassword = async () => {
         </footer>
       </div>
     </main>
-    </>
   );
 }
