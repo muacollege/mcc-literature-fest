@@ -11,9 +11,9 @@ import { auth, db } from "./firebase";
 
 const EVENTS = [
   "MCC NATIONAL ELOCUTION (ARABIC)",
+  "CALLIGRAPHY (ARABIC)",
   "PAPER PRESENTATION (ARABIC)",
   "VLOG-MAKING (ARABIC)",
-  "CALLIGRAPHY (ARABIC)",
   "QUIZ COMPETITION (GENERAL)",
 ];
 const QUIZ = "QUIZ COMPETITION (GENERAL)";
@@ -494,6 +494,9 @@ const resetPassword = async () => {
               <p className="mt-4 text-center text-[9px] font-black tracking-[0.25em] text-[#e5c98f]">MCC LITERATURE FESTIVAL 2026</p>
               <h2 className="mt-2 text-center text-2xl font-black sm:text-3xl">Registration Submitted!</h2>
               <p className="mt-2 text-center text-sm text-white/75">Your registration details have been saved successfully.</p>
+              <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-left text-xs leading-5 text-white/90">
+                <strong className="font-extrabold text-[#f0d69e]">Need to add your Paper Presentation Topic or Vlog Link later?</strong> Log out and log in again anytime using the same registered email address and password. Your registration is saved, and you do not need to register again.
+              </div>
             </div>
             <div className="p-6 sm:p-8">
               <p className="text-center text-[9px] font-black tracking-[0.2em] text-[#98743c]">YOUR REGISTRATION ID</p>
@@ -506,6 +509,12 @@ const resetPassword = async () => {
                     <p className="text-[9px] font-black tracking-[0.22em] text-[#98743c]">EVENT DETAILS</p>
                     <h3 className="mt-1 text-lg font-black text-[#173d32]">Complete Your Event Information</h3>
                     <p className="mt-1 text-xs leading-5 text-[#756b59]">Only details for events you originally selected can be added here.</p>
+                  </div>
+                  <div className="flex items-start gap-2.5 rounded-xl border border-[#d8e5dc] bg-[#f0f6f1] px-3 py-3 text-[#315b49]">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#8eaa98] text-[11px] font-black text-[#245846]">i</span>
+                    <p className="text-[11px] leading-5 sm:text-xs">
+                      <strong className="font-extrabold">You can add these details later:</strong> Log out and log in again using the same registered email address and password. Your registration will remain saved, and you do not need to register again.
+                    </p>
                   </div>
                   {paperSelected && (
                     <div>
@@ -622,14 +631,20 @@ const resetPassword = async () => {
               <p className="mb-4 rounded-xl bg-[#f7f4eb] px-3 py-2.5 text-xs leading-5 text-[#756b59]">
                 Select up to two individual events. Quiz may be selected in addition.
               </p>
+              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-[#d8e5dc] bg-[#f0f6f1] px-3 py-3 text-[#315b49]">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#8eaa98] text-[11px] font-black text-[#245846]">i</span>
+                <p className="text-[11px] leading-5 sm:text-xs">
+                  <strong className="font-extrabold">You can add these details later:</strong> If your Paper Presentation Topic or Vlog Link is not ready, leave it blank for now. After submitting your registration, log in again anytime using the same registered email address and password to add the pending details. You do not need to register again.
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
                 {EVENTS.map((event, index) => {
                   const selected = profile.events.includes(event);
                   return (
                     <div
                       key={event}
-                      className={`rounded-2xl border p-4 transition-all ${
+                      className={`h-fit self-start rounded-2xl border p-4 transition-all ${
                         selected
                           ? "border-[#b58b43] bg-gradient-to-r from-[#fbf7eb] to-white shadow-[0_5px_18px_rgba(181,139,67,0.10)]"
                           : "border-[#e8e0d2] bg-white hover:border-[#cbb98f] hover:bg-[#fdfcf8]"
@@ -705,16 +720,16 @@ const resetPassword = async () => {
                   <p className="text-[11px] text-[#8a806e]">Please read and accept all declarations.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <div className="grid grid-cols-1 items-start gap-2">
                 {DECLARATIONS.map(({ key, text }) => (
-                  <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8e0d2] bg-[#fdfcf8] p-3.5 transition hover:border-[#cbb98f] sm:p-4">
+                  <label key={key} className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#e8e0d2] bg-[#fdfcf8] p-2.5 transition hover:border-[#cbb98f] sm:p-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 shrink-0 accent-[#173d32]"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#173d32]"
                       checked={profile.declarations[key]}
                       onChange={(e) => updateDeclaration(key, e.target.checked)}
                     />
-                    <span className="text-xs leading-6 text-[#40584d] sm:text-sm">{text}</span>
+                    <span className="text-xs leading-5 text-[#40584d]">{text}</span>
                   </label>
                 ))}
               </div>
