@@ -353,23 +353,25 @@ const resetPassword = async () => {
 
         {!user ? (
           <section className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#e2d7c2] bg-white shadow-[0_18px_45px_rgba(23,61,50,0.08)] lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="flex min-h-[300px] flex-col items-center justify-center bg-gradient-to-br from-[#123d32] via-[#1c5544] to-[#0d3028] px-6 py-10 text-center text-white sm:min-h-[360px] lg:min-h-[650px] lg:px-10 lg:py-14">
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white p-3 shadow-xl sm:h-28 sm:w-28">
+            <div className="flex min-h-0 flex-row items-center justify-start gap-4 bg-gradient-to-br from-[#123d32] via-[#1c5544] to-[#0d3028] px-5 py-5 text-left text-white sm:gap-5 sm:px-7 sm:py-6 lg:min-h-[650px] lg:flex-col lg:justify-center lg:gap-0 lg:px-10 lg:py-14 lg:text-center">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[#e5c98f]/50 bg-white p-2 shadow-xl sm:h-[4.5rem] sm:w-[4.5rem] lg:h-24 lg:w-24 lg:p-3">
                 <img src="/college-logo.png" alt="Madeenathul Uloom Arabic College logo" className="college-logo-float h-full w-full object-contain" />
               </div>
-              <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-[#e5c98f] sm:text-[10px]">
-                Madeenathul Uloom Arabic College
-              </p>
-              <h2 className="mt-4 max-w-sm text-3xl font-black leading-tight text-[#f4dfa7] sm:text-4xl">
-                MCC Literature Festival 2026
-              </h2>
-              <p className="mt-4 text-sm font-medium text-white/85 sm:text-base">
-                Student Registration Portal
-              </p>
-              <div className="mt-10 h-1 w-14 rounded-full bg-[#e5c98f]" />
-              <p className="mt-8 text-sm text-white/75 sm:text-base">
-                Be part of the celebration.
-              </p>
+              <div className="min-w-0 flex-1 lg:flex-none">
+                <p className="text-[8px] font-black uppercase tracking-[0.12em] text-[#e5c98f] sm:text-[9px] sm:tracking-[0.16em] lg:mt-5 lg:text-[10px] lg:tracking-[0.2em]">
+                  Madeenathul Uloom Arabic College
+                </p>
+                <h2 className="mt-1 text-lg font-black leading-tight text-[#f4dfa7] sm:text-xl lg:mt-4 lg:max-w-sm lg:text-4xl">
+                  MCC Literature Festival 2026
+                </h2>
+                <p className="mt-1 text-[11px] font-medium text-white/85 sm:text-xs lg:mt-4 lg:text-base">
+                  Student Registration Portal
+                </p>
+                <div className="hidden h-1 w-14 rounded-full bg-[#e5c98f] lg:mx-auto lg:mt-10 lg:block" />
+                <p className="mt-8 hidden text-sm text-white/75 lg:block lg:text-base">
+                  Be part of the celebration.
+                </p>
+              </div>
             </div>
 
             <div className="p-5 sm:p-7 lg:flex lg:min-h-[650px] lg:flex-col lg:justify-center lg:px-12 lg:py-12">
