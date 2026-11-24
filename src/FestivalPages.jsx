@@ -317,6 +317,29 @@ const competitions = [
 ];
 
 export function EventsPage({ onBack }) {
+  const setEventGlowPosition = (element, clientX, clientY) => {
+    const rect = element.getBoundingClientRect();
+    element.style.setProperty("--event-glow-x", `${clientX - rect.left}px`);
+    element.style.setProperty("--event-glow-y", `${clientY - rect.top}px`);
+  };
+
+  const handleEventTouchStart = (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    setEventGlowPosition(e.currentTarget, touch.clientX, touch.clientY);
+    e.currentTarget.classList.add("event-touch-active");
+  };
+
+  const handleEventTouchMove = (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    setEventGlowPosition(e.currentTarget, touch.clientX, touch.clientY);
+  };
+
+  const handleEventTouchEnd = (e) => {
+    e.currentTarget.classList.remove("event-touch-active");
+  };
+
   const prizeLabels = ["FIRST PRIZE", "SECOND PRIZE", "THIRD PRIZE"];
   const prizeStyles = [
     {
@@ -344,6 +367,49 @@ export function EventsPage({ onBack }) {
 
   return (
     <main className={shell}>
+      <style>{`
+        .event-touch-card {
+          position: relative;
+          isolation: isolate;
+          transition: transform 350ms ease, box-shadow 350ms ease, border-color 350ms ease;
+        }
+
+        .event-touch-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          border-radius: inherit;
+          background: radial-gradient(
+            220px circle at var(--event-glow-x, 50%) var(--event-glow-y, 50%),
+            rgba(255, 226, 157, 0.26),
+            rgba(218, 177, 96, 0.10) 38%,
+            transparent 72%
+          );
+          opacity: 0;
+          transition: opacity 300ms ease;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          .event-touch-card:hover::after { opacity: 1; }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+          .event-touch-card.event-touch-active {
+            transform: translateY(-3px) scale(1.003);
+            border-color: rgba(181, 139, 67, 0.9);
+            box-shadow: 0 0 0 1px rgba(181, 139, 67, 0.16), 0 0 18px rgba(181, 139, 67, 0.15), 0 18px 34px rgba(23, 61, 50, 0.13);
+          }
+
+          .event-touch-card.event-touch-active::after { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .event-touch-card { transition: none; }
+          .event-touch-card::after { transition: none; }
+        }
+      `}</style>
       <PageHeader
         title="Explore Events"
         subtitle="Five national-level competitions. Explore the events and their cash prizes."
@@ -379,9 +445,13 @@ export function EventsPage({ onBack }) {
           {competitions.map((event, eventIndex) => (
             <article
               key={event.number}
-              className="group relative isolate overflow-hidden rounded-[1.6rem] border border-[#dfd2b8] bg-[#fffefa] shadow-[0_10px_30px_rgba(23,61,50,0.07)] transition-all duration-500 hover:-translate-y-1 hover:border-[#b58b43]/70 hover:shadow-[0_20px_42px_rgba(23,61,50,0.13)]"
+              onTouchStart={handleEventTouchStart}
+              onTouchMove={handleEventTouchMove}
+              onTouchEnd={handleEventTouchEnd}
+              onTouchCancel={handleEventTouchEnd}
+              className="event-touch-card group relative isolate overflow-hidden rounded-[1.6rem] border border-[#dfd2b8] bg-[#fffefa] shadow-[0_10px_30px_rgba(23,61,50,0.07)] transition-all duration-500 hover:-translate-y-1 hover:border-[#b58b43]/70 hover:shadow-[0_20px_42px_rgba(23,61,50,0.13)]"
             >
-              <div className="relative overflow-hidden bg-gradient-to-br from-[#205747] via-[#174b3d] to-[#10392f] px-5 py-5 text-white sm:px-6 sm:py-6">
+              <div className="relative z-10 overflow-hidden bg-gradient-to-br from-[#205747] via-[#174b3d] to-[#10392f] px-5 py-5 text-white sm:px-6 sm:py-6">
                 <div className="pointer-events-none absolute -right-5 -top-10 select-none text-[8rem] font-black leading-none text-white/[0.045] transition-transform duration-700 group-hover:scale-110">
                   {event.number}
                 </div>
@@ -409,7 +479,7 @@ export function EventsPage({ onBack }) {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6">
+              <div className="relative z-10 p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[9px] font-black tracking-[0.24em] text-[#98743c]">
