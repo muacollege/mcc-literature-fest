@@ -494,9 +494,6 @@ const resetPassword = async () => {
               <p className="mt-4 text-center text-[9px] font-black tracking-[0.25em] text-[#e5c98f]">MCC LITERATURE FESTIVAL 2026</p>
               <h2 className="mt-2 text-center text-2xl font-black sm:text-3xl">Registration Submitted!</h2>
               <p className="mt-2 text-center text-sm text-white/75">Your registration details have been saved successfully.</p>
-              <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-left text-xs leading-5 text-white/90">
-                <strong className="font-extrabold text-[#f0d69e]">Need to add your Paper Presentation Topic or Vlog Link later?</strong> Log out and log in again anytime using the same registered email address and password. Your registration is saved, and you do not need to register again.
-              </div>
             </div>
             <div className="p-6 sm:p-8">
               <p className="text-center text-[9px] font-black tracking-[0.2em] text-[#98743c]">YOUR REGISTRATION ID</p>
