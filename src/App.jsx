@@ -44,37 +44,31 @@ const actions = [
 ];
 
 export default function App() {
- 
-const [showAdmin, setShowAdmin] = useState(false);
-
-const [activePage, setActivePage] = useState(() => {
-  const page = window.location.hash.replace("#", "");
-
-  return ["register", "brochure", "events", "results"].includes(page)
-    ? page
-    : "home";
-});
-
-const navigate = (page) => {
-  window.history.pushState(null, "", `#${page}`);
-  setActivePage(page);
-};
-
-useEffect(() => {
-  const handleBack = () => {
+  const [activePage, setActivePage] = useState(() => {
     const page = window.location.hash.replace("#", "");
+    return ["register", "brochure", "events", "results", "admin"].includes(page)
+      ? page
+      : "home";
+  });
 
-    setActivePage(
-      ["register", "brochure", "events", "results"].includes(page)
-        ? page
-        : "home"
-    );
+  const navigate = (page) => {
+    window.history.pushState(null, "", page === "home" ? window.location.pathname : `#${page}`);
+    setActivePage(page);
   };
 
-  window.addEventListener("popstate", handleBack);
+  useEffect(() => {
+    const handleBack = () => {
+      const page = window.location.hash.replace("#", "");
+      setActivePage(
+        ["register", "brochure", "events", "results", "admin"].includes(page)
+          ? page
+          : "home"
+      );
+    };
 
-  return () => window.removeEventListener("popstate", handleBack);
-}, []);
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, []);
   const [registrationOpen, setRegistrationOpen] = useState(
     () => Date.now() <= REGISTRATION_DEADLINE
   );
@@ -104,8 +98,8 @@ useEffect(() => {
     e.currentTarget.style.setProperty("--glow-x", `${x}px`);
     e.currentTarget.style.setProperty("--glow-y", `${y}px`);
   };
-if (showAdmin) {
-  return <Admin onBack={() => setShowAdmin(false)} />;
+if (activePage === "admin") {
+  return <Admin onBack={() => navigate("home")} />;
 }
 
   if (activePage === "brochure") {
@@ -660,7 +654,7 @@ className="absolute top-[27rem] -right-16 bottom-auto w-[100%] max-w-[900px] obj
 </p>
 
 <button
-  onClick={() => setShowAdmin(true)}
+  onClick={() => navigate("admin")}
   className="mt-3 text-xs font-semibold text-[#98743c] underline"
 >
   Admin Login

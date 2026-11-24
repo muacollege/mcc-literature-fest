@@ -55,14 +55,17 @@ function exportCsv(rows) {
   const headers = [
     "Registration ID", "Name", "Email", "Mobile", "College", "University",
     "Department", "Course", "Year", "Events", "Paper Topic", "Vlog Link",
-    "Quiz Team", "Second Member", "Second Member Mobile", "Status",
+    "Quiz Team", "Second Member", "Second Member Mobile", "Paper Topic Status", "Vlog Link Status", "Status",
   ];
 
   const lines = rows.map((row) => [
     row.registrationId, row.name, row.email, row.mobile, row.college,
     row.university, row.department, row.course, row.year, row.events,
     row.paperTopic, row.vlogLink, row.quizTeam?.teamName,
-    row.quizTeam?.member2Name, row.quizTeam?.member2Mobile, row.status,
+    row.quizTeam?.member2Name, row.quizTeam?.member2Mobile,
+    (row.events || []).includes("PAPER PRESENTATION (ARABIC)") ? (String(row.paperTopic || "").trim() ? "Submitted" : "Pending") : "Not Applicable",
+    (row.events || []).includes("VLOG-MAKING (ARABIC)") ? (String(row.vlogLink || "").trim() ? "Submitted" : "Pending") : "Not Applicable",
+    row.status,
   ].map(csvCell).join(","));
 
   const csv = "\uFEFF" + [headers.map(csvCell).join(","), ...lines].join("\r\n");
@@ -71,6 +74,27 @@ function exportCsv(rows) {
   const link = document.createElement("a");
   link.href = url;
   link.download = `MCC-Literature-Fest-Registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadRegistrationBackup(rows) {
+  const backup = {
+    backupType: "MCC Literature Festival 2026 Registration Backup",
+    formatVersion: 1,
+    exportedAt: new Date().toISOString(),
+    totalRegistrations: rows.length,
+    registrations: rows,
+  };
+
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `MCC-Literature-Fest-Registration-Backup-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -87,10 +111,12 @@ export default function Admin({ onBack }) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState("All Events");
+  const [detailsFilter, setDetailsFilter] = useState("All Details");
   const [results, setResults] = useState({});
   const [resultDrafts, setResultDrafts] = useState({});
   const [savingResult, setSavingResult] = useState("");
   const [resultMessage, setResultMessage] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -154,6 +180,24 @@ export default function Admin({ onBack }) {
     return () => { active = false; };
   }, [user]);
 
+  const getPendingDetails = (row) => {
+    const events = row.events || [];
+    return {
+      paper: events.includes("PAPER PRESENTATION (ARABIC)") && !String(row.paperTopic || "").trim(),
+      vlog: events.includes("VLOG-MAKING (ARABIC)") && !String(row.vlogLink || "").trim(),
+    };
+  };
+
+  const pendingCounts = useMemo(() => {
+    return rows.reduce((counts, row) => {
+      const pending = getPendingDetails(row);
+      if (pending.paper) counts.paper += 1;
+      if (pending.vlog) counts.vlog += 1;
+      if (pending.paper || pending.vlog) counts.any += 1;
+      return counts;
+    }, { paper: 0, vlog: 0, any: 0 });
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -162,9 +206,15 @@ export default function Admin({ onBack }) {
       ].some((value) => String(value || "").toLowerCase().includes(term));
       const matchesEvent =
         eventFilter === "All Events" || (row.events || []).includes(eventFilter);
-      return matchesSearch && matchesEvent;
+      const pending = getPendingDetails(row);
+      const matchesDetails =
+        detailsFilter === "All Details" ||
+        (detailsFilter === "Pending Paper Topic" && pending.paper) ||
+        (detailsFilter === "Pending Vlog Link" && pending.vlog) ||
+        (detailsFilter === "Any Pending Details" && (pending.paper || pending.vlog));
+      return matchesSearch && matchesEvent && matchesDetails;
     });
-  }, [rows, search, eventFilter]);
+  }, [rows, search, eventFilter, detailsFilter]);
 
   const eventCounts = useMemo(() => {
     return EVENT_OPTIONS.map((event) => ({
@@ -325,6 +375,7 @@ const resetPassword = async () => {
     setRows([]);
     setSearch("");
     setEventFilter("All Events");
+    setDetailsFilter("All Details");
   };
 
   if (!authReady) {
@@ -457,6 +508,21 @@ const resetPassword = async () => {
           ))}
         </section>
 
+        <section className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-bold text-amber-800">Pending Paper Topics</p>
+            <p className="mt-1 text-3xl font-black text-amber-900">{pendingCounts.paper}</p>
+          </div>
+          <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+            <p className="text-xs font-bold text-orange-800">Pending Vlog Links</p>
+            <p className="mt-1 text-3xl font-black text-orange-900">{pendingCounts.vlog}</p>
+          </div>
+          <div className="rounded-2xl border border-[#e0d6c3] bg-white p-4">
+            <p className="text-xs font-bold text-[#756b59]">Students With Pending Details</p>
+            <p className="mt-1 text-3xl font-black text-[#173d32]">{pendingCounts.any}</p>
+          </div>
+        </section>
+
         <section className="mt-6 rounded-2xl border border-[#e0d6c3] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-3 lg:flex-row">
             <input
@@ -473,6 +539,16 @@ const resetPassword = async () => {
               <option>All Events</option>
               {EVENT_OPTIONS.map((event) => <option key={event}>{event}</option>)}
             </select>
+            <select
+              className={`${inputClass} lg:max-w-xs`}
+              value={detailsFilter}
+              onChange={(event) => setDetailsFilter(event.target.value)}
+            >
+              <option>All Details</option>
+              <option>Any Pending Details</option>
+              <option>Pending Paper Topic</option>
+              <option>Pending Vlog Link</option>
+            </select>
             <button
               onClick={() => exportCsv(filteredRows)}
               disabled={!filteredRows.length}
@@ -480,11 +556,19 @@ const resetPassword = async () => {
             >
               Export CSV
             </button>
+            <button
+              type="button"
+              onClick={() => downloadRegistrationBackup(rows)}
+              disabled={!rows.length || user?.uid !== ADMIN_UID}
+              className="rounded-xl border border-[#205747] bg-[#edf4ef] px-5 py-3 text-sm font-bold text-[#173d32] transition hover:bg-[#dcebe1] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Download JSON Backup
+            </button>
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#756b59]">
-            <span>Showing {filteredRows.length} of {rows.length} registrations</span>
+            <span>Showing {filteredRows.length} of {rows.length} registrations · JSON backup includes all registrations, regardless of filters.</span>
             <button
-              onClick={() => { setSearch(""); setEventFilter("All Events"); }}
+              onClick={() => { setSearch(""); setEventFilter("All Events"); setDetailsFilter("All Details"); }}
               className="font-bold text-[#98743c] underline"
             >
               Clear filters
@@ -620,6 +704,13 @@ const resetPassword = async () => {
                       <td className="px-4 py-4">
                         <p className="font-bold">{row.name || "—"}</p>
                         <p className="mt-1 text-xs text-[#8a806e]">{row.department || ""}</p>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudent(row)}
+                          className="mt-2 rounded-lg border border-[#b58b43] px-3 py-1.5 text-[11px] font-bold text-[#80612f] transition hover:bg-[#faf4e6]"
+                        >
+                          View Details
+                        </button>
                       </td>
                       <td className="px-4 py-4">
                         <p className="font-semibold">{row.college || "—"}</p>
@@ -641,6 +732,12 @@ const resetPassword = async () => {
                             </span>
                           ))}
                         </div>
+                        {getPendingDetails(row).paper && (
+                          <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">Paper Topic Pending</p>
+                        )}
+                        {getPendingDetails(row).vlog && (
+                          <p className="mt-2 inline-flex rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-bold text-orange-800">Vlog Link Pending</p>
+                        )}
                         {row.paperTopic && <p className="mt-2 text-xs"><b>Paper:</b> {row.paperTopic}</p>}
                         {row.vlogLink && <p className="mt-2 break-all text-xs"><b>Vlog:</b> <a className="text-blue-700 underline" href={row.vlogLink} target="_blank" rel="noreferrer">Open link</a></p>}
                         {row.quizTeam && <div className="mt-2 text-xs leading-5">
@@ -656,6 +753,91 @@ const resetPassword = async () => {
             </div>
           )}
         </section>
+
+        {selectedStudent && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#102d25]/70 p-3 backdrop-blur-sm sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-details-title"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setSelectedStudent(null);
+            }}
+          >
+            <section className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-[#d9c9a8] bg-[#fffefa] shadow-2xl">
+              <header className="sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-3xl bg-gradient-to-r from-[#205747] to-[#10392f] px-5 py-5 text-white sm:px-7">
+                <div>
+                  <p className="text-[10px] font-black tracking-[0.2em] text-[#e5c98f]">STUDENT REGISTRATION</p>
+                  <h2 id="student-details-title" className="mt-1 text-xl font-black sm:text-2xl">{selectedStudent.name || "Student Details"}</h2>
+                  <p className="mt-1 text-xs text-white/75">Registration ID: {selectedStudent.registrationId || selectedStudent.id || "—"}</p>
+                </div>
+                <button type="button" onClick={() => setSelectedStudent(null)} aria-label="Close student details" className="rounded-xl border border-white/30 px-3 py-2 text-sm font-bold text-white hover:bg-white/10">✕</button>
+              </header>
+
+              <div className="space-y-5 p-5 sm:p-7">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[#e8e0d2] bg-white p-4">
+                    <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-[#98743c]">Personal Information</h3>
+                    <dl className="space-y-2.5 text-sm">
+                      <div><dt className="text-xs text-[#8a806e]">Full Name</dt><dd className="font-semibold">{selectedStudent.name || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">Email</dt><dd className="break-all font-semibold">{selectedStudent.email || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">Mobile</dt><dd className="font-semibold">{selectedStudent.mobile || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">Registration ID</dt><dd className="font-semibold">{selectedStudent.registrationId || selectedStudent.id || "—"}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="rounded-2xl border border-[#e8e0d2] bg-white p-4">
+                    <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-[#98743c]">Academic Information</h3>
+                    <dl className="space-y-2.5 text-sm">
+                      <div><dt className="text-xs text-[#8a806e]">College</dt><dd className="font-semibold">{selectedStudent.college || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">University</dt><dd className="font-semibold">{selectedStudent.university || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">Department</dt><dd className="font-semibold">{selectedStudent.department || "—"}</dd></div>
+                      <div><dt className="text-xs text-[#8a806e]">Course / Year</dt><dd className="font-semibold">{[selectedStudent.course, selectedStudent.year].filter(Boolean).join(" / ") || "—"}</dd></div>
+                    </dl>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#e8e0d2] bg-white p-4">
+                  <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-[#98743c]">Competition Details</h3>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {(selectedStudent.events || []).length ? selectedStudent.events.map((event) => (
+                      <span key={event} className="rounded-full bg-[#eee9dc] px-3 py-1.5 text-[11px] font-bold text-[#29483c]">{event}</span>
+                    )) : <span className="text-sm text-[#8a806e]">No events listed</span>}
+                  </div>
+                  {(selectedStudent.events || []).includes("PAPER PRESENTATION (ARABIC)") && (
+                    <div className="mb-3 rounded-xl bg-[#faf8f1] p-3">
+                      <p className="text-xs font-bold text-[#80612f]">Paper Presentation Topic</p>
+                      <p className="mt-1 break-words text-sm">{selectedStudent.paperTopic || "Pending – not submitted yet"}</p>
+                    </div>
+                  )}
+                  {(selectedStudent.events || []).includes("VLOG-MAKING (ARABIC)") && (
+                    <div className="mb-3 rounded-xl bg-[#faf8f1] p-3">
+                      <p className="text-xs font-bold text-[#80612f]">Vlog Link</p>
+                      {selectedStudent.vlogLink ? <a className="mt-1 block break-all text-sm text-blue-700 underline" href={selectedStudent.vlogLink} target="_blank" rel="noreferrer">{selectedStudent.vlogLink}</a> : <p className="mt-1 text-sm">Pending – not submitted yet</p>}
+                    </div>
+                  )}
+                  {selectedStudent.quizTeam && (
+                    <div className="rounded-xl bg-[#faf8f1] p-3">
+                      <p className="mb-2 text-xs font-bold text-[#80612f]">Quiz Team Information</p>
+                      <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                        <div><dt className="text-xs text-[#8a806e]">Team Name</dt><dd className="font-semibold">{selectedStudent.quizTeam.teamName || "—"}</dd></div>
+                        <div><dt className="text-xs text-[#8a806e]">Second Member</dt><dd className="font-semibold">{selectedStudent.quizTeam.member2Name || "—"}</dd></div>
+                        <div><dt className="text-xs text-[#8a806e]">Member 2 Mobile</dt><dd className="font-semibold">{selectedStudent.quizTeam.member2Mobile || "—"}</dd></div>
+                        <div><dt className="text-xs text-[#8a806e]">Member 2 Unique ID</dt><dd className="font-semibold">{selectedStudent.quizTeam.member2UniqueId || "—"}</dd></div>
+                      </dl>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eee8dc] pt-4">
+                  <p className="text-xs text-[#8a806e]">
+                    Submitted: {selectedStudent.submittedAt?.toDate ? selectedStudent.submittedAt.toDate().toLocaleString() : selectedStudent.submittedAt instanceof Date ? selectedStudent.submittedAt.toLocaleString() : "Date not available"}
+                  </p>
+                  <button type="button" onClick={() => setSelectedStudent(null)} className="rounded-xl bg-[#173d32] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#245846]">Close Details</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-[#8a806e]">
           Admin access is restricted to the authorized Firebase account.
